@@ -1,7 +1,8 @@
 #include "Servo_ESP32.h"
 #include "Wire.h"
 #include "LiquidCrystal_I2C.h"
-#include "Adafruit_NeoPixel.h"
+#include <Adafruit_NeoPixel.h>
+#include <dht.h>
 
 // 핀 설정
 #define ALIVE 0
@@ -34,13 +35,11 @@
 #define MP3PLAY1 31
 #define MP3VOL 33
 
-
 // State Constant
 #define GET 1
 #define SET 2
 #define MODULE 3
 #define RESET 4
-
 
 // val Union
 union
@@ -63,13 +62,18 @@ const int ledChannel_A = 0;
 int freq = 5000;
 int resolution = 8;
 
-const int servoPin = 23;   // 서보모터 핀
-const int Channel = 13;   // 채널만 설정, 주파수와 해상도는 라이브러리안에 이미 설정이 되어 있습니다.
+const int servoPin = 23; // 서보모터 핀
+const int Channel = 13;  // 채널만 설정, 주파수와 해상도는 라이브러리안에 이미 설정이 되어 있습니다.
 
-int pos = 0;       // 서보모터 0~180 각도안에서만 조작된다.
-Servo myservo;  // 서보모터 객체 생성
+int pos = 0;   // 서보모터 0~180 각도안에서만 조작된다.
+Servo myservo; // 서보모터 객체 생성
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(4, 33, NEO_GRB + NEO_KHZ800);
+
+//dht 포트
+int dhtPin = 0;
+//dht
+dht myDHT11;
 
 // Buffer
 char buffer[52];
@@ -78,19 +82,17 @@ byte idx = 0;
 byte dataLen;
 
 boolean isStart = false;
+boolean isDHThumi = false;
+boolean isDHTtemp = false;
 
 uint8_t command_index = 0;
 
-void setup() { 
-  // myservo에 GPIO핀을 할당하는 함수
-  Serial.begin(115200);
-  delay(10);
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("SETUP");
-  delay(100);
-  lcd.clear();
+void setup()
+{
+    // myservo에 GPIO핀을 할당하는 함수
+    Serial.begin(115200);
+    initLCD();
+    initNeo();
 }
 
 void initLCD()
@@ -99,16 +101,25 @@ void initLCD()
     lcd.backlight();
     lcd.clear();
 }
-void loop() {
-    while(Serial.available()){
-    if(Serial.available() > 0){
-      char serialRead = Serial.read();
-      setPinValue(serialRead & 0xff);
+
+void initNeo()
+{
+    strip.begin();
+    strip.show();
+}
+void loop()
+{
+    while (Serial.available())
+    {
+        if (Serial.available() > 0)
+        {
+            char serialRead = Serial.read();
+            setPinValue(serialRead & 0xff);
+        }
     }
-  }
-  delay(15);
-  // sendPinvalues();
-  // delay(10);
+    delay(15);
+    sendPinvalues();
+    delay(10);
 }
 
 // 시리얼에서 읽어온 값을 버퍼에 읽어오고 파싱
@@ -116,7 +127,7 @@ void setPinValue(unsigned char c)
 {
     // lcd.setCursor(0, 0);
     // lcd.print("setPinvalue");
-    
+
     if (c == 0x55 && isStart == false)
     {
         if (prevc == 0xff)
@@ -200,6 +211,16 @@ void parseData()
     => 해당 함수에선 플래그 설정 및 setup()과 같이 핀모드 설정만 하고
     센서 작동 및 시리얼 전송은 sendPinValues()에서 실행
     */
+        if (device == DHTHUMI)
+        {
+            isDHThumi = true;
+            dhtPin = readBuffer(6);
+        }
+        else if (device == DHTTEMP)
+        {
+            isDHTtemp = true;
+            dhtPin = readBuffer(6);
+        }
     }
     break;
     case SET: //센서에 출력해야하는 경우
@@ -237,22 +258,22 @@ void runSet(int device)
 
     case DIGITAL: //센서 셋팅
     {
-    //setPortWritable(pin);
-    int v = readBuffer(7);
-    //digitalWrite(pin, v);
+        //setPortWritable(pin);
+        int v = readBuffer(7);
+        //digitalWrite(pin, v);
 
-    ledcSetup(ledChannel_A, freq, resolution);
-    //   ledcSetup(ledChannel_B, freq, resolution);
-    // ledcSetup(ledChannel_A, freq, resolution);
-    // ledcAttachPin(pin, ledChannel_A);
-    ledcAttachPin(port, ledChannel_A);
+        ledcSetup(ledChannel_A, freq, resolution);
+        //   ledcSetup(ledChannel_B, freq, resolution);
+        // ledcSetup(ledChannel_A, freq, resolution);
+        // ledcAttachPin(pin, ledChannel_A);
+        ledcAttachPin(port, ledChannel_A);
 
-    ledcWrite(ledChannel_A, v);
+        ledcWrite(ledChannel_A, v);
 
-    // 채널과 Pin을 연결하는 함수
-    //  ledcAttachPin(26, ledChannel_B);
-  }
-  break;
+        // 채널과 Pin을 연결하는 함수
+        //  ledcAttachPin(26, ledChannel_B);
+    }
+    break;
     case SERVO:
     {
         int num = readBuffer(7);
@@ -275,14 +296,13 @@ void runSet(int device)
     break;
     case NEOPIXELINIT:
     {
-        //받아온 값으로 포트 재설정
-        strip = Adafruit_NeoPixel(readBuffer(7), readBuffer(6), NEO_GRB + NEO_KHZ800);
+        /*
+    객체 재선언시 작동 안됨 -> ESP32에서만
+    */
+        // strip = Adafruit_NeoPixel(readBuffer(7), readBuffer(6), NEO_GRB + NEO_KHZ800);
+        strip.setPin(readBuffer(6));
         strip.begin();
-        strip.setPixelColor(0, 0, 0, 0);
-        strip.setPixelColor(1, 0, 0, 0);
-        strip.setPixelColor(2, 0, 0, 0);
-        strip.setPixelColor(3, 0, 0, 0);
-        strip.show();
+        strip.clear();
         strip.show();
     }
     break;
@@ -323,7 +343,7 @@ void runSet(int device)
         int r = readBuffer(7);
         int g = readBuffer(9);
         int b = readBuffer(11);
-    
+
         strip.setPixelColor(0, r, g, b);
         strip.setPixelColor(1, r, g, b);
         strip.setPixelColor(2, r, g, b);
@@ -335,18 +355,13 @@ void runSet(int device)
     break;
     case NEOPIXELCLEAR:
     {
-        strip.setPixelColor(0, 0, 0, 0);
-        strip.setPixelColor(1, 0, 0, 0);
-        strip.setPixelColor(2, 0, 0, 0);
-        strip.setPixelColor(3, 0, 0, 0);
-        strip.show();
+        strip.clear();
         strip.show();
     }
     break;
     default:
         break;
     }
-    
 }
 
 void runModule(int device)
@@ -354,7 +369,7 @@ void runModule(int device)
     //0xff 0x55 0x6 0x0 0x1 0xa 0x9 0x0 0x0 0xa
     //head head                        pinNUM
     //                                      A/D
-    
+
     int port = readBuffer(6);
     unsigned char pin = port;
 
@@ -362,7 +377,7 @@ void runModule(int device)
     // lcd.print("runModule");
     switch (device)
     {
-    
+
     case LCDINIT:
     {                           //주소, column, line 순서
         if (readBuffer(7) == 0) //주소: 0x27
@@ -382,7 +397,7 @@ void runModule(int device)
         lcd.clear();
     }
     break;
-    
+
     case LCD:
     {
         int row = readBuffer(7);
@@ -414,11 +429,51 @@ void runModule(int device)
     }
 }
 
+void sendPinvalues()
+{
+    callOK();
+    if (isDHThumi)
+    {
+        sendDHT();
+        callOK();
+    }
+    if (isDHTtemp)
+    {
+        sendDHT();
+        callOK();
+    }
+}
+
+void sendDHT()
+{
+
+    myDHT11.read11(dhtPin);
+    float fTempC = myDHT11.temperature;
+    float fHumid = myDHT11.humidity;
+
+    delay(50);
+    if (isDHTtemp)
+    {
+        writeHead();       //읽어온 값 시리얼 전송 시작
+        sendFloat(fTempC); //float 시리얼 전송
+        writeSerial(DHTTEMP);
+        writeEnd(); //줄바꿈
+    }
+
+    if (isDHThumi)
+
+    {
+        writeHead();
+        sendFloat(fHumid);
+        writeSerial(DHTHUMI);
+        writeEnd();
+    }
+}
+
 void writeBuffer(int index, unsigned char c)
 {
     buffer[index] = c;
 }
-
 
 void writeHead()
 {
@@ -509,4 +564,3 @@ String readString(int len, int startIdx)
 
     return str;
 }
-
