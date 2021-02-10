@@ -3,6 +3,8 @@
 #include "LiquidCrystal_I2C.h"
 #include <Adafruit_NeoPixel.h>
 #include <dht.h>
+#include <HardwareSerial.h>
+#include <DFRobotDFPlayerMini.h>
 
 // 핀 설정
 #define ALIVE 0
@@ -70,6 +72,12 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(4, 33, NEO_GRB + NEO_KHZ800);
 int dhtPin = 0;
 //dht
 dht myDHT11;
+
+int tx = 22;
+int rx = 23;
+int vol = 15;
+HardwareSerial dfSerial(2); //HardwareSerial 이름 정의
+DFRobotDFPlayerMini MP3Player;
 
 // Buffer
 char buffer[52];
@@ -363,6 +371,30 @@ void runSet(int device)
     {
         strip.clear();
         strip.show();
+    }
+    break;
+    case MP3INIT:
+    {
+        tx = readBuffer(7);
+        rx = readBuffer(9);
+        dfSerial.begin(9600, SERIAL_8N1, tx, rx); //통신속도, UART모드, RX핀, TX
+        MP3Player.begin(dfSerial);
+        vol = 15; //vol 초기 값
+        MP3Player.volume(vol);
+        delay(10); //없으면 작동 X
+    }
+    break;
+    case MP3PLAY1:
+    {
+        MP3Player.volume(vol);
+        delay(10); //없으면 작동 X
+        int num = readBuffer(9);
+        MP3Player.play(num);
+    }
+    break;
+    case MP3VOL:
+    {
+        vol = readBuffer(9);
     }
     break;
     default:

@@ -240,10 +240,10 @@ Entry.jikko_esp.blockMenuBlocks = [
   "jikko_esp_get_lcd_col",
   "jikko_esp_lcd_clear",
 
-  // 'jikko_esp_set_mp3_init',
-  // 'jikko_esp_set_mp3_vol',
-  // 'jikko_esp_set_mp3_play',
-  // 'jikko_esp_set_mp3_play2',
+  "jikko_esp_set_mp3_init",
+  "jikko_esp_set_mp3_vol",
+  "jikko_esp_set_mp3_play",
+  "jikko_esp_set_mp3_play2",
 ];
 Entry.jikko_esp.getBlocks = function () {
   var tx;
@@ -387,6 +387,8 @@ Entry.jikko_esp.getBlocks = function () {
             ["13", "13"],
             ["14", "14"],
             ["15", "15"],
+            ["16", "16"],
+            ["17", "17"],
             ["18", "18"],
             ["19", "19"],
             ["23", "23"],
@@ -2807,12 +2809,12 @@ Entry.jikko_esp.getBlocks = function () {
       def: {
         params: [
           {
-            type: "arduino_get_port_number",
-            params: ["10"],
+            type: "jikko_esp_list_digital_basic",
+            params: ["16"],
           },
           {
-            type: "arduino_get_port_number",
-            params: ["11"],
+            type: "jikko_esp_list_digital_basic",
+            params: ["17"],
           },
           null,
         ],

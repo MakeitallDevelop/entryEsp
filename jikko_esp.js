@@ -838,7 +838,7 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
       buffer = Buffer.concat([buffer, line, col, textLenBuf, text, dummy]);
       break;
     }
-    /*
+
     case this.sensorTypes.MP3INIT: {
       const tx = new Buffer(2);
       const rx = new Buffer(2);
@@ -942,7 +942,6 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
       buffer = Buffer.concat([buffer, tx, vol, dummy]);
       break;
     }
-    */
   }
 
   return buffer;
