@@ -58,10 +58,6 @@ union
 
 // 13 ~ 33
 
-const int ledChannel_A = 0;
-int freq = 5000;
-int resolution = 8;
-
 const int servoPin = 23; // 서보모터 핀
 const int Channel = 13;  // 채널만 설정, 주파수와 해상도는 라이브러리안에 이미 설정이 되어 있습니다.
 
@@ -260,18 +256,28 @@ void runSet(int device)
     {
         //setPortWritable(pin);
         int v = readBuffer(7);
-        //digitalWrite(pin, v);
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, v);
 
-        ledcSetup(ledChannel_A, freq, resolution);
         //   ledcSetup(ledChannel_B, freq, resolution);
         // ledcSetup(ledChannel_A, freq, resolution);
         // ledcAttachPin(pin, ledChannel_A);
-        ledcAttachPin(port, ledChannel_A);
-
-        ledcWrite(ledChannel_A, v);
 
         // 채널과 Pin을 연결하는 함수
         //  ledcAttachPin(26, ledChannel_B);
+    }
+    break;
+    case PWM:
+    {
+
+        int channel = readBuffer(7);
+        int freq = readShort(9);
+        int resol = readBuffer(11);
+        int duty = readBuffer(13);
+
+        ledcSetup(channel, freq, resol);
+        ledcAttachPin(port, channel);
+        ledcWrite(channel, duty);
     }
     break;
     case SERVO:
