@@ -60,6 +60,7 @@ Entry.jikko_esp = {
     MP3PLAY2: 32,
     MP3VOL: 33,
     RESET_: 34,
+    TOUCH: 35,
   },
 
   toneTable: {
@@ -130,11 +131,10 @@ Entry.jikko_esp.setLanguage = function () {
         jikko_esp_get_digital: "디지털 %1 핀 읽기",
         jikko_esp_get_digital_toggle: "디지털 %1 핀 센서 값",
         jikko_esp_set_digital_toggle: "디지털 %1 핀 %2 %3",
-        jikko_esp_toggle_led: "디지털 %1 핀 %2  %3",
+        jikko_esp_toggle_led: "디지털 %1 핀 pwm %2 으로 켜기 %3",
         jikko_esp_set_led_toggle: "LED %1 핀 %2 %3",
 
-        jikko_esp_set_digital_pwm:
-          "PWM %1 핀 채널: %2 주파수: %3 해상도: %4 값:%5 출력 %6",
+        jikko_esp_set_digital_pwm: "LED (PWM %1 핀)밝기 %2 출력 (0 ~ 255)%3",
         jikko_esp_set_digital_servo: "서보 모터 %1 핀 %2 각도로 회전 %3",
         jikko_esp_set_digital_buzzer_toggle: "피에조부저 %1 핀 %2 %3",
         jikko_esp_set_digital_buzzer_volume:
@@ -163,6 +163,8 @@ Entry.jikko_esp.setLanguage = function () {
         jikko_esp_set_mp3_play: "mp3 %1 번 파일 재생 %2",
         jikko_esp_set_mp3_play2: "mp3 %1 번 파일 %2 초 동안 재생 %3",
         jikko_esp_set_mp3_vol: "mp3 볼륨 %1 으로 설정 (0 ~ 30) %2",
+
+        jikko_esp_touch: "%1 핀 터치센서 터치 상태",
       },
     },
     en: {
@@ -215,6 +217,8 @@ Entry.jikko_esp.setLanguage = function () {
         jikko_esp_set_mp3_play: "mp3 %1 번 파일 재생 %2",
         jikko_esp_set_mp3_play2: "mp3 %1 번 파일 %2 초 동안 재생 %3",
         jikko_esp_set_mp3_vol: "mp3 볼륨 %1 으로 설정 (0 ~ 30) %2",
+
+        jikko_esp_touch: "%1 핀 터치센서 터치 상태",
       },
     },
   };
@@ -223,7 +227,6 @@ Entry.jikko_esp.blockMenuBlocks = [
   //'jikko_esp_set_digital_toggle',
   "jikko_esp_toggle_led",
   "jikko_esp_set_digital_servo",
-  "jikko_esp_set_digital_pwm",
   // 'jikko_esp_set_digital_buzzer_toggle',
   // 'jikko_esp_set_digital_buzzer_volume',
   // 'jikko_esp_set_digital_buzzer',
@@ -239,11 +242,11 @@ Entry.jikko_esp.blockMenuBlocks = [
   "jikko_esp_get_lcd_row",
   "jikko_esp_get_lcd_col",
   "jikko_esp_lcd_clear",
-
-  "jikko_esp_set_mp3_init",
-  "jikko_esp_set_mp3_vol",
-  "jikko_esp_set_mp3_play",
-  "jikko_esp_set_mp3_play2",
+  // 'jikko_esp_set_mp3_init',
+  // 'jikko_esp_set_mp3_vol',
+  // 'jikko_esp_set_mp3_play',
+  // 'jikko_esp_set_mp3_play2',
+  "jikko_esp_touch",
 ];
 Entry.jikko_esp.getBlocks = function () {
   var tx;
@@ -262,10 +265,12 @@ Entry.jikko_esp.getBlocks = function () {
         {
           type: "Block",
           accept: "string",
+          defaultType: "number",
         },
         {
           type: "Block",
           accept: "string",
+          defaultType: "number",
         },
         {
           type: "Indicator",
@@ -277,11 +282,12 @@ Entry.jikko_esp.getBlocks = function () {
       def: {
         params: [
           {
-            type: "jikko_esp_list_digital_basic",
+            type: "text",
             params: ["26"],
           },
           {
-            type: "jikko_esp_list_digital_toggle_en",
+            type: "text",
+            params: ["100"],
           },
           null,
         ],
@@ -295,18 +301,7 @@ Entry.jikko_esp.getBlocks = function () {
       isNotFor: ["jikko_esp"],
       func(sprite, script) {
         const port = script.getNumberValue("PORT");
-        let value = script.getValue("VALUE");
-        if (typeof value === "string") {
-          value = value.toLowerCase();
-        }
-        if (Entry.jikko.highList.indexOf(value) > -1) {
-          value = 255;
-        } else if (Entry.jikko.lowList.indexOf(value) > -1) {
-          value = 0;
-        } else {
-          throw new Error();
-        }
-
+        let value = script.getNumberValue("VALUE");
         if (!Entry.hw.sendQueue["SET"]) {
           Entry.hw.sendQueue["SET"] = {};
         }
@@ -380,9 +375,18 @@ Entry.jikko_esp.getBlocks = function () {
         {
           type: "Dropdown",
           options: [
+            ["0", "0"],
+            ["1", "1"],
             ["2", "2"],
+            ["3", "3"],
             ["4", "4"],
             ["5", "5"],
+            ["6", "6"],
+            ["7", "7"],
+            ["8", "8"],
+            ["9", "9"],
+            ["10", "10"],
+            ["11", "11"],
             ["12", "12"],
             ["13", "13"],
             ["14", "14"],
@@ -391,10 +395,18 @@ Entry.jikko_esp.getBlocks = function () {
             ["17", "17"],
             ["18", "18"],
             ["19", "19"],
+            ["20", "20"],
+            ["21", "21"],
+            ["22", "22"],
             ["23", "23"],
+            ["24", "24"],
             ["25", "25"],
             ["26", "26"],
             ["27", "27"],
+            ["28", "28"],
+            ["29", "29"],
+            ["30", "30"],
+            ["31", "31"],
             ["32", "32"],
             ["33", "33"],
           ],
@@ -449,6 +461,40 @@ Entry.jikko_esp.getBlocks = function () {
       },
       func: function (sprite, script) {
         return script.getField("OCTAVE");
+      },
+    },
+    jikko_esp_list_digital_pwm: {
+      color: EntryStatic.colorSet.block.default.HARDWARE,
+      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
+      skeleton: "basic_string_field",
+      statements: [],
+      template: "%1",
+      params: [
+        {
+          type: "Dropdown",
+          options: [
+            ["3", "3"],
+            ["5", "5"],
+            ["6", "6"],
+            ["9", "9"],
+            ["10", "10"],
+            ["11", "11"],
+          ],
+          value: "11",
+          fontSize: 11,
+          bgColor: EntryStatic.colorSet.block.darken.HARDWARE,
+          arrowColor: EntryStatic.colorSet.arrow.default.HARDWARE,
+        },
+      ],
+      events: {},
+      def: {
+        params: [null],
+      },
+      paramsKeyMap: {
+        PORT: 0,
+      },
+      func: function (sprite, script) {
+        return script.getStringField("PORT");
       },
     },
     jikko_esp_list_digital_toggle: {
@@ -2028,18 +2074,6 @@ Entry.jikko_esp.getBlocks = function () {
           accept: "string",
         },
         {
-          type: "Block",
-          accept: "string",
-        },
-        {
-          type: "Block",
-          accept: "string",
-        },
-        {
-          type: "Block",
-          accept: "string",
-        },
-        {
           type: "Indicator",
           img: "block_icon/hardware_icon.svg",
           size: 12,
@@ -2049,62 +2083,39 @@ Entry.jikko_esp.getBlocks = function () {
       def: {
         params: [
           {
-            type: "jikko_esp_list_digital_basic",
+            type: "jikko_esp_list_digital_pwm",
             params: ["5"],
-          },
-          {
-            type: "text",
-            params: ["0"],
-          },
-          {
-            type: "text",
-            params: ["5000"],
-          },
-          {
-            type: "text",
-            params: ["8"],
           },
           {
             type: "text",
             params: ["255"],
           },
-
           null,
         ],
         type: "jikko_esp_set_digital_pwm",
       },
       paramsKeyMap: {
         PORT: 0,
-        CHANNEL: 1,
-        FREQ: 2,
-        RESOL: 3,
-        DUTY: 4,
+        VALUE: 1,
       },
       class: "jikko_espLed",
       isNotFor: ["jikko_esp"],
       func: function (sprite, script) {
         var port = script.getNumberValue("PORT");
-        var channel = script.getNumberValue("CHANNEL");
-        var freq = script.getNumberValue("FREQ");
-        var resol = script.getNumberValue("RESOL");
-        var duty = script.getNumberValue("DUTY");
+        var value = script.getNumberValue("VALUE");
 
-        duty = Math.round(duty);
-        duty = Math.min(duty, 255);
-        duty = Math.max(duty, 0);
+        value = Math.round(value);
+        value = Math.min(value, 255);
+        value = Math.max(value, 0);
         if (!Entry.hw.sendQueue["SET"]) {
           Entry.hw.sendQueue["SET"] = {};
         }
         Entry.hw.sendQueue["SET"][port] = {
           type: Entry.jikko_esp.sensorTypes.PWM,
-          data: {
-            channel: channel,
-            freq: freq,
-            resol: resol,
-            duty: duty,
-          },
+          data: value,
           time: new Date().getTime(),
         };
+
         return script.callReturn();
       },
       syntax: { js: [], py: ["jikko_esp.set_digital_pwm(%1, %2)"] },
@@ -2809,12 +2820,12 @@ Entry.jikko_esp.getBlocks = function () {
       def: {
         params: [
           {
-            type: "jikko_esp_list_digital_basic",
-            params: ["16"],
+            type: "arduino_get_port_number",
+            params: ["10"],
           },
           {
-            type: "jikko_esp_list_digital_basic",
-            params: ["17"],
+            type: "arduino_get_port_number",
+            params: ["11"],
           },
           null,
         ],
@@ -3313,6 +3324,103 @@ Entry.jikko_esp.getBlocks = function () {
         }
       },
       syntax: { js: [], py: ["jikko_esp.module_digital_bluetooth(%1)"] },
+    },
+    jikko_list_touch: {
+      color: EntryStatic.colorSet.block.default.HARDWARE,
+      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
+      skeleton: 'basic_string_field',
+      statements: [],
+      template: '%1',
+      params: [
+        {
+          type: 'Dropdown',
+          options: [
+            ['IO2', '2'],
+            ['IO32', '32'],
+            ['IO33', '33'],
+            ['IO13', '13'],
+            ['IO14', '14'],
+            ['IO15', '15'],
+            ['IO27', '27'],
+          ],
+          value: '2',
+          fontSize: 11,
+          bgColor: EntryStatic.colorSet.block.darken.HARDWARE,
+          arrowColor: EntryStatic.colorSet.arrow.default.HARDWARE,
+        },
+      ],
+      events: {},
+      def: {
+        params: [null],
+      },
+      paramsKeyMap: {
+        NUM: 0,
+      },
+      func: function (sprite, script) {
+        return script.getField('NUM');
+      },
+    },
+    jikko_esp_touch: {
+      color: EntryStatic.colorSet.block.default.HARDWARE,
+      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
+      fontColor: '#fff',
+      skeleton: 'basic_boolean_field',
+      statements: [],
+      params: [
+        {
+          type: 'Block',
+          accept: 'string',
+          defaultType: 'number',
+        },
+      ],
+      events: {},
+      def: {
+        params: [
+          {
+            type: 'jikko_list_touch',
+            params: ['2'],
+          },
+        ],
+        type: 'jikko_esp_touch',
+      },
+      paramsKeyMap: {
+        PORT: 0,
+      },
+      isNotFor: ['jikko_esp'],
+      class: 'jikkoGet',
+      func: function (sprite, script) {
+
+        var port = script.getNumberValue("PORT");
+        var TCH = Entry.hw.portData.TOUCH;
+
+        if (!Entry.hw.sendQueue["SET"]) {
+          Entry.hw.sendQueue["SET"] = {};
+        }
+        delete Entry.hw.sendQueue["SET"][port];
+        
+        if (!Entry.hw.sendQueue["GET"]) {
+          Entry.hw.sendQueue["GET"] = {};
+        }
+
+        Entry.hw.sendQueue["GET"][Entry.jikko_esp.sensorTypes.TOUCH] = {
+          port: port,
+          time: new Date().getTime(),
+        };
+        console.log("TOUCH VAL: ");
+
+        // return Entry.hw.portData.TOUCH || 0;
+  
+        console.log(port);
+
+        var value = (TCH <= 30) ? TCH || 0 : 0;
+
+        console.log(!value);
+        return !value;
+      },
+      syntax: {
+        js: [],
+        py: [{}],
+      },
     },
   };
 };
