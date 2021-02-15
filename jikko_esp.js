@@ -31,10 +31,8 @@ function Module() {
     MP3PLAY1: 31,
     MP3PLAY2: 32,
     MP3VOL: 33,
-    LOADINIT: 35,
-    LOADSCALE: 36,
-    LOADVALUE: 37,
-    DUST: 38,
+    RESET_: 34,
+    TOUCH: 35,
   };
 
   this.actionTypes = {
@@ -51,45 +49,9 @@ function Module() {
   };
 
   this.digitalPortTimeList = [
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0,
   ];
 
   this.sensorData = {
@@ -111,6 +73,7 @@ function Module() {
     },
     DHTTEMP: 0,
     DHTHUMI: 0,
+    TOUCH: 0,
     DIGITAL: {
       0: 0,
       1: 0,
@@ -126,26 +89,6 @@ function Module() {
       11: 0,
       12: 0,
       13: 0,
-      14: 0,
-      15: 0,
-      16: 0,
-      17: 0,
-      18: 0,
-      19: 0,
-      20: 0,
-      21: 0,
-      22: 0,
-      23: 0,
-      24: 0,
-      25: 0,
-      26: 0,
-      27: 0,
-      28: 0,
-      29: 0,
-      30: 0,
-      31: 0,
-      32: 0,
-      33: 0,
     },
     ANALOG: {
       0: 0,
@@ -172,7 +115,7 @@ function Module() {
 
 let sensorIdx = 0;
 
-Module.prototype.init = function (handler, config) {};
+Module.prototype.init = function (handler, config) { };
 
 Module.prototype.setSerialPort = function (sp) {
   const self = this;
@@ -181,12 +124,13 @@ Module.prototype.setSerialPort = function (sp) {
 Module.prototype.requestInitialData = function (sp) {
   // jikko 그대로 했을 때
   // 이 함수 때문에 펌웨어 무한업로드 문제 발생
-  // this.sp = sp;
-  // sp.set({ dtr: false, rts: true });
-  // sp.set({ dtr: false, rts: false });
+  this.sp = sp;
+  sp.set({ dtr: false, rts: true });
+  sp.set({ dtr: false, rts: false });
 
   return true;
 };
+
 
 Module.prototype.checkInitialData = function (data, config) {
   return true;
@@ -361,18 +305,10 @@ Module.prototype.handleLocalData = function (data) {
     if (data.length <= 4 || data[0] !== 255 || data[1] !== 85) {
       return;
     }
+
     const readData = data.subarray(2, data.length);
     let value;
     switch (readData[0]) {
-      case self.sensorValueSize.FLOAT: {
-        value = new Buffer(readData.subarray(1, 5)).readFloatLE();
-        value = Math.round(value * 100) / 100;
-        break;
-      }
-      case self.sensorValueSize.SHORT: {
-        value = new Buffer(readData.subarray(1, 3)).readInt16LE();
-        break;
-      }
       case self.sensorValueSize.STRING: {
         value = new Buffer(readData[1] + 3);
         value = readData.slice(2, readData[1] + 3);
@@ -390,38 +326,42 @@ Module.prototype.handleLocalData = function (data) {
     const port = readData[readData.length - 2];
 
     switch (type) {
-      case self.sensorTypes.DIGITAL: {
-        self.sensorData.DIGITAL[port] = value;
+      case self.sensorTypes.TOUCH: {
+        self.sensorData.TOUCH = value;
         break;
       }
-      case self.sensorTypes.ANALOG: {
-        self.sensorData.ANALOG[port] = value;
-        break;
-      }
-      case self.sensorTypes.PULSEIN: {
-        self.sensorData.PULSEIN[port] = value;
-        break;
-      }
-      case self.sensorTypes.DHTTEMP: {
-        self.sensorData.DHTTEMP = value;
-        console.log(value);
-        break;
-      }
-      case self.sensorTypes.DHTHUMI: {
-        self.sensorData.DHTHUMI = value;
-        break;
-      }
-      case self.sensorTypes.ULTRASONIC: {
-        self.sensorData.ULTRASONIC[port] = value;
-        //      console.log(port);
-        //      console.log(self.sensorData.ULTRASONIC[port]);
-        break;
-      }
-      case self.sensorTypes.TIMER: {
-        self.sensorData.TIMER = value;
-        break;
-      }
-
+      /*
+    case self.sensorTypes.DIGITAL: {
+      self.sensorData.DIGITAL[port] = value;
+      break;
+    }
+    case self.sensorTypes.ANALOG: {
+      self.sensorData.ANALOG[port] = value;
+      break;
+    }
+    case self.sensorTypes.PULSEIN: {
+      self.sensorData.PULSEIN[port] = value;
+      break;
+    }
+    case self.sensorTypes.DHTTEMP: {
+      self.sensorData.DHTTEMP = value;
+      break;
+    }
+    case self.sensorTypes.DHTHUMI: {
+      self.sensorData.DHTHUMI = value;
+      break;
+    }
+    case self.sensorTypes.ULTRASONIC: {
+      self.sensorData.ULTRASONIC[port] = value;
+      //      console.log(port);
+      //      console.log(self.sensorData.ULTRASONIC[port]);
+      break;
+    }
+    case self.sensorTypes.TIMER: {
+      self.sensorData.TIMER = value;
+      break;
+    }
+    */
       default: {
         break;
       }
@@ -466,7 +406,19 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       ]);
     }
     //console.log(buffer);
-  } else if (device == this.sensorTypes.ULTRASONIC) {
+  } else if (device == this.sensorTypes.TOUCH) {
+    buffer = new Buffer([
+      255,
+      85,
+      5,
+      sensorIdx,
+      this.actionTypes.GET,
+      device,
+      port,
+      10,
+    ]);
+  }
+  /* else if (device == this.sensorTypes.ULTRASONIC) {
     buffer = new Buffer([
       255,
       85,
@@ -489,7 +441,6 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       port,
       10,
     ]);
-    console.log(buffer);
   } else if (device == this.sensorTypes.DHTHUMI) {
     buffer = new Buffer([
       255,
@@ -501,7 +452,8 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       port,
       10,
     ]);
-  } else if (!data) {
+  } 
+  else if (!data) {
     buffer = new Buffer([
       255,
       85,
@@ -526,7 +478,7 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       10,
     ]);
     buffer = Buffer.concat([buffer, value, dummy]);
-  }
+  }*/
   sensorIdx++;
   if (sensorIdx > 254) {
     sensorIdx = 0;
@@ -567,111 +519,96 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
         port,
       ]);
       buffer = Buffer.concat([buffer, value, dummy]);
-      //console.log(buffer);
-      break;
-    }
-
-    case this.sensorTypes.PWM: {
-      var channel = new Buffer(2);
-      var freq = new Buffer(2);
-      var resol = new Buffer(2);
-      var duty = new Buffer(2);
-      if ($.isPlainObject(data)) {
-        channel.writeInt16LE(data.channel);
-        freq.writeInt16LE(data.freq);
-        resol.writeInt16LE(data.resol);
-        duty.writeInt16LE(data.duty);
-      } else {
-        channel.writeInt16LE(0);
-        freq.writeInt16LE(0);
-        resol.writeInt16LE(0);
-        duty.writeInt16LE(0);
-      }
-      buffer = new Buffer([
-        255,
-        85,
-        12,
-        sensorIdx,
-        this.actionTypes.SET,
-        device,
-        port,
-      ]);
-      buffer = Buffer.concat([buffer, channel, freq, resol, duty, dummy]);
       break;
     }
 
     /*
-    case this.sensorTypes.RESET_: {
-      buffer = new Buffer([
-        255,
-        85,
-        4,
-        sensorIdx,
-        this.actionTypes.SET,
-        device,
-        port,
-      ]);
-      buffer = Buffer.concat([buffer, dummy]);
-      break;
-    }
-    case this.sensorTypes.TONE: {
-      const time = new Buffer(2);
-      if ($.isPlainObject(data)) {
-        value.writeInt16LE(data.value);
-        time.writeInt16LE(data.duration);
-      } else {
-        value.writeInt16LE(0);
-        time.writeInt16LE(0);
-      }
-      buffer = new Buffer([
-        255,
-        85,
-        8,
-        sensorIdx,
-        this.actionTypes.SET,
-        device,
-        port,
-      ]);
-      buffer = Buffer.concat([buffer, value, time, dummy]);
-      break;
-    }
-    case this.sensorTypes.DCMOTOR: {
-      const directionPort = new Buffer(2);
-      const speedPort = new Buffer(2);
-      const directionValue = new Buffer(2);
-      const speedValue = new Buffer(2);
-      if ($.isPlainObject(data)) {
-        directionPort.writeInt16LE(data.port0);
-        speedPort.writeInt16LE(data.port1);
-        directionValue.writeInt16LE(data.value0);
-        speedValue.writeInt16LE(data.value1);
-      } else {
-        directionPort.writeInt16LE(0);
-        speedPort.writeInt16LE(0);
-        directionValue.writeInt16LE(0);
-        speedValue.writeInt16LE(0);
-      }
-      buffer = new Buffer([
-        255,
-        85,
-        12,
-        sensorIdx,
-        this.actionTypes.SET,
-        device,
-        port,
-      ]);
-      buffer = Buffer.concat([
-        buffer,
-        directionPort,
-        speedPort,
-        directionValue,
-        speedValue,
-        dummy,
-      ]);
-      break;
-    }
-    */
+case this.sensorTypes.PWM: {
+  value.writeInt16LE(data);
+  buffer = new Buffer([
+    255,
+    85,
+    6,
+    sensorIdx,
+    this.actionTypes.SET,
+    device,
+    port,
+  ]);
+  buffer = Buffer.concat([buffer, value, dummy]);
+  break;
+}
+case this.sensorTypes.RESET_: {
+  buffer = new Buffer([
+    255,
+    85,
+    4,
+    sensorIdx,
+    this.actionTypes.SET,
+    device,
+    port,
+  ]);
+  buffer = Buffer.concat([buffer, dummy]);
+  break;
+}
+case this.sensorTypes.TONE: {
+  const time = new Buffer(2);
+  if ($.isPlainObject(data)) {
+    value.writeInt16LE(data.value);
+    time.writeInt16LE(data.duration);
+  } else {
+    value.writeInt16LE(0);
+    time.writeInt16LE(0);
+  }
+  buffer = new Buffer([
+    255,
+    85,
+    8,
+    sensorIdx,
+    this.actionTypes.SET,
+    device,
+    port,
+  ]);
+  buffer = Buffer.concat([buffer, value, time, dummy]);
+  break;
+}
+case this.sensorTypes.DCMOTOR: {
+  const directionPort = new Buffer(2);
+  const speedPort = new Buffer(2);
+  const directionValue = new Buffer(2);
+  const speedValue = new Buffer(2);
+  if ($.isPlainObject(data)) {
+    directionPort.writeInt16LE(data.port0);
+    speedPort.writeInt16LE(data.port1);
+    directionValue.writeInt16LE(data.value0);
+    speedValue.writeInt16LE(data.value1);
+  } else {
+    directionPort.writeInt16LE(0);
+    speedPort.writeInt16LE(0);
+    directionValue.writeInt16LE(0);
+    speedValue.writeInt16LE(0);
+  }
+  buffer = new Buffer([
+    255,
+    85,
+    12,
+    sensorIdx,
+    this.actionTypes.SET,
+    device,
+    port,
+  ]);
+  buffer = Buffer.concat([
+    buffer,
+    directionPort,
+    speedPort,
+    directionValue,
+    speedValue,
+    dummy,
+  ]);
+  break;
+}
+*/
     case this.sensorTypes.NEOPIXELINIT: {
+      console.log("NEOPIXELINIT");
       value.writeInt16LE(data);
       buffer = new Buffer([
         255,
@@ -683,7 +620,6 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
         port,
       ]);
       buffer = Buffer.concat([buffer, value, dummy]);
-      //   console.log(buffer);
       break;
     }
     case this.sensorTypes.NEOPIXELBRIGHT: {
@@ -751,7 +687,6 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
         port,
       ]);
       buffer = Buffer.concat([buffer, r, g, b, dummy]);
-      console.log(buffer);
       break;
     }
     case this.sensorTypes.NEOPIXELCLEAR: {
@@ -838,7 +773,7 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
       buffer = Buffer.concat([buffer, line, col, textLenBuf, text, dummy]);
       break;
     }
-
+    /*
     case this.sensorTypes.MP3INIT: {
       const tx = new Buffer(2);
       const rx = new Buffer(2);
@@ -942,6 +877,7 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
       buffer = Buffer.concat([buffer, tx, vol, dummy]);
       break;
     }
+    */
   }
 
   return buffer;
@@ -975,6 +911,6 @@ Module.prototype.reset = function () {
   this.sensorData.PULSEIN = {};
 };
 
-Module.prototype.lostController = function () {};
+Module.prototype.lostController = function () { };
 
 module.exports = new Module();

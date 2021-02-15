@@ -1,10 +1,8 @@
 #include "Servo_ESP32.h"
 #include "Wire.h"
 #include "LiquidCrystal_I2C.h"
-#include <Adafruit_NeoPixel.h>
-#include <dht.h>
-#include <HardwareSerial.h>
-#include <DFRobotDFPlayerMini.h>
+#include "Adafruit_NeoPixel.h"
+#include "dht.h"
 
 // 핀 설정
 #define ALIVE 0
@@ -36,6 +34,8 @@
 #define MP3INIT 30
 #define MP3PLAY1 31
 #define MP3VOL 33
+#define RESET_ 34
+#define TOUCH 35
 
 // State Constant
 #define GET 1
@@ -60,6 +60,10 @@ union
 
 // 13 ~ 33
 
+const int ledChannel_A = 0;
+int freq = 5000;
+int resolution = 8;
+
 const int servoPin = 23; // 서보모터 핀
 const int Channel = 13;  // 채널만 설정, 주파수와 해상도는 라이브러리안에 이미 설정이 되어 있습니다.
 
@@ -68,16 +72,12 @@ Servo myservo; // 서보모터 객체 생성
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(4, 33, NEO_GRB + NEO_KHZ800);
 
-//dht 포트
+int touchPin = 0;
+
+// 포트
 int dhtPin = 0;
 //dht
 dht myDHT11;
-
-int tx = 22;
-int rx = 23;
-int vol = 15;
-HardwareSerial dfSerial(2); //HardwareSerial 이름 정의
-DFRobotDFPlayerMini MP3Player;
 
 // Buffer
 char buffer[52];
@@ -88,6 +88,7 @@ byte dataLen;
 boolean isStart = false;
 boolean isDHThumi = false;
 boolean isDHTtemp = false;
+boolean isTouch = false;
 
 uint8_t command_index = 0;
 
@@ -204,9 +205,6 @@ void parseData()
     int device = readBuffer(5);
     int port = readBuffer(6);
 
-    // lcd.setCursor(0, 0);
-    // lcd.print("parseData");
-
     switch (action) //actionType
     {
     case GET:
@@ -224,6 +222,13 @@ void parseData()
         {
             isDHTtemp = true;
             dhtPin = readBuffer(6);
+        }
+        else if (device == TOUCH)
+        {
+            isTouch = true;
+            touchPin = readBuffer(6);
+            lcd.setCursor(0, 0);
+            lcd.print("isTouched");
         }
     }
     break;
@@ -264,28 +269,18 @@ void runSet(int device)
     {
         //setPortWritable(pin);
         int v = readBuffer(7);
-        pinMode(pin, OUTPUT);
-        digitalWrite(pin, v);
+        //digitalWrite(pin, v);
 
+        ledcSetup(ledChannel_A, freq, resolution);
         //   ledcSetup(ledChannel_B, freq, resolution);
         // ledcSetup(ledChannel_A, freq, resolution);
         // ledcAttachPin(pin, ledChannel_A);
+        ledcAttachPin(port, ledChannel_A);
+
+        ledcWrite(ledChannel_A, v);
 
         // 채널과 Pin을 연결하는 함수
         //  ledcAttachPin(26, ledChannel_B);
-    }
-    break;
-    case PWM:
-    {
-
-        int channel = readBuffer(7);
-        int freq = readShort(9);
-        int resol = readBuffer(11);
-        int duty = readBuffer(13);
-
-        ledcSetup(channel, freq, resol);
-        ledcAttachPin(port, channel);
-        ledcWrite(channel, duty);
     }
     break;
     case SERVO:
@@ -373,30 +368,6 @@ void runSet(int device)
         strip.show();
     }
     break;
-    case MP3INIT:
-    {
-        tx = readBuffer(7);
-        rx = readBuffer(9);
-        dfSerial.begin(9600, SERIAL_8N1, tx, rx); //통신속도, UART모드, RX핀, TX
-        MP3Player.begin(dfSerial);
-        vol = 15; //vol 초기 값
-        MP3Player.volume(vol);
-        delay(10); //없으면 작동 X
-    }
-    break;
-    case MP3PLAY1:
-    {
-        MP3Player.volume(vol);
-        delay(10); //없으면 작동 X
-        int num = readBuffer(9);
-        MP3Player.play(num);
-    }
-    break;
-    case MP3VOL:
-    {
-        vol = readBuffer(9);
-    }
-    break;
     default:
         break;
     }
@@ -480,6 +451,48 @@ void sendPinvalues()
         sendDHT();
         callOK();
     }
+    if (isTouch)
+    {
+        sendTouch();
+        callOK();
+    }
+}
+
+void sendTouch()
+{
+    float tp = 0;
+    switch(touchPin){
+        case 2:
+            tp = touchRead(T2);
+            break;
+        case 13:
+            tp = touchRead(T4);
+            break;
+        case 14:
+            tp = touchRead(T6);
+            break;
+        case 15:
+            tp = touchRead(T3);
+            break;
+        case 32:
+            tp = touchRead(T9);
+            break;
+        case 33:
+            tp = touchRead(T8);
+            break;
+    }
+    delay(50);
+    lcd.setCursor(0, 0);
+    lcd.print("sendTouch");
+    lcd.setCursor(0, 1);
+    lcd.print(touchPin);
+    lcd.setCursor(6, 1);
+    lcd.print(tp);
+    
+    writeHead();
+    sendFloat(tp);
+    writeSerial(TOUCH);
+    writeEnd();
 }
 
 void sendDHT()
