@@ -48,9 +48,45 @@ function Module() {
   };
 
   this.digitalPortTimeList = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
   ];
 
   this.sensorData = {
@@ -114,7 +150,7 @@ function Module() {
 
 let sensorIdx = 0;
 
-Module.prototype.init = function (handler, config) { };
+Module.prototype.init = function (handler, config) {};
 
 Module.prototype.setSerialPort = function (sp) {
   const self = this;
@@ -131,7 +167,6 @@ Module.prototype.requestInitialData = function (sp) {
 
   return true;
 };
-
 
 Module.prototype.checkInitialData = function (data, config) {
   return true;
@@ -310,6 +345,15 @@ Module.prototype.handleLocalData = function (data) {
     const readData = data.subarray(2, data.length);
     let value;
     switch (readData[0]) {
+      case self.sensorValueSize.FLOAT: {
+        value = new Buffer(readData.subarray(1, 5)).readFloatLE();
+        value = Math.round(value * 100) / 100;
+        break;
+      }
+      case self.sensorValueSize.SHORT: {
+        value = new Buffer(readData.subarray(1, 3)).readInt16LE();
+        break;
+      }
       case self.sensorValueSize.STRING: {
         value = new Buffer(readData[1] + 3);
         value = readData.slice(2, readData[1] + 3);
@@ -329,6 +373,16 @@ Module.prototype.handleLocalData = function (data) {
     switch (type) {
       case self.sensorTypes.TOUCH: {
         self.sensorData.TOUCH = value;
+        console.log("touch value:");
+        console.log(value);
+        break;
+      }
+      case self.sensorTypes.DHTTEMP: {
+        self.sensorData.DHTTEMP = value;
+        break;
+      }
+      case self.sensorTypes.DHTHUMI: {
+        self.sensorData.DHTHUMI = value;
         break;
       }
       /*
@@ -344,14 +398,7 @@ Module.prototype.handleLocalData = function (data) {
       self.sensorData.PULSEIN[port] = value;
       break;
     }
-    case self.sensorTypes.DHTTEMP: {
-      self.sensorData.DHTTEMP = value;
-      break;
-    }
-    case self.sensorTypes.DHTHUMI: {
-      self.sensorData.DHTHUMI = value;
-      break;
-    }
+
     case self.sensorTypes.ULTRASONIC: {
       self.sensorData.ULTRASONIC[port] = value;
       //      console.log(port);
@@ -418,8 +465,7 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       port,
       10,
     ]);
-  }
-  /* else if (device == this.sensorTypes.ULTRASONIC) {
+  } else if (device == this.sensorTypes.ULTRASONIC) {
     buffer = new Buffer([
       255,
       85,
@@ -453,8 +499,7 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       port,
       10,
     ]);
-  } 
-  else if (!data) {
+  } else if (!data) {
     buffer = new Buffer([
       255,
       85,
@@ -479,7 +524,7 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       10,
     ]);
     buffer = Buffer.concat([buffer, value, dummy]);
-  }*/
+  }
   sensorIdx++;
   if (sensorIdx > 254) {
     sensorIdx = 0;
@@ -916,7 +961,6 @@ case this.sensorTypes.DCMOTOR: {
       buffer = Buffer.concat([buffer, tx, vol, dummy]);
       break;
     }
-    */
   }
 
   return buffer;
@@ -950,6 +994,6 @@ Module.prototype.reset = function () {
   this.sensorData.PULSEIN = {};
 };
 
-Module.prototype.lostController = function () { };
+Module.prototype.lostController = function () {};
 
 module.exports = new Module();

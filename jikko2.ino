@@ -278,18 +278,8 @@ void runSet(int device)
     {
         //setPortWritable(pin);
         int v = readBuffer(7);
-        //digitalWrite(pin, v);
-
-        ledcSetup(ledChannel_A, freq, resolution);
-        //   ledcSetup(ledChannel_B, freq, resolution);
-        // ledcSetup(ledChannel_A, freq, resolution);
-        // ledcAttachPin(pin, ledChannel_A);
-        ledcAttachPin(port, ledChannel_A);
-
-        ledcWrite(ledChannel_A, v);
-
-        // 채널과 Pin을 연결하는 함수
-        //  ledcAttachPin(26, ledChannel_B);
+        pinMode(port, OUTPUT);
+        digitalWrite(port, v);
     }
     break;
     case SERVO:
