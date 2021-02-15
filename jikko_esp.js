@@ -10,9 +10,13 @@ function Module() {
     PULSEIN: 6,
     ULTRASONIC: 7,
     TIMER: 8,
+    READ_BLUETOOTH: 9,
+    WRITE_BLUETOOTH: 10,
     LCD: 11,
     LCDCLEAR: 12,
+    RGBLED: 13,
     DCMOTOR: 14,
+    OLED: 15,
     PIR: 16,
     LCDINIT: 17,
     DHTHUMI: 18,
@@ -22,19 +26,11 @@ function Module() {
     NEOPIXEL: 22,
     NEOPIXELALL: 23,
     NEOPIXELCLEAR: 24,
-    DOTMATRIXINIT: 25,
-    DOTMATRIXBRIGHT: 26,
-    DOTMATRIX: 27,
-    DOTMATRIXEMOJI: 28,
-    DOTMATRIXCLEAR: 29,
     MP3INIT: 30,
     MP3PLAY1: 31,
     MP3PLAY2: 32,
     MP3VOL: 33,
-    LOADINIT: 35,
-    LOADSCALE: 36,
-    LOADVALUE: 37,
-    DUST: 38,
+    OLEDTEXT: 34,
   };
 
   this.actionTypes = {
@@ -177,13 +173,15 @@ Module.prototype.init = function (handler, config) {};
 Module.prototype.setSerialPort = function (sp) {
   const self = this;
   this.sp = sp;
+  // sp.set({ dtr: false, rts: true });
+  // sp.set({ dtr: false, rts: false });
 };
 Module.prototype.requestInitialData = function (sp) {
   // jikko 그대로 했을 때
   // 이 함수 때문에 펌웨어 무한업로드 문제 발생
-  // this.sp = sp;
-  // sp.set({ dtr: false, rts: true });
-  // sp.set({ dtr: false, rts: false });
+  this.sp = sp;
+  sp.set({ dtr: false, rts: true });
+  sp.set({ dtr: false, rts: false });
 
   return true;
 };
@@ -802,7 +800,6 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
       buffer = Buffer.concat([buffer, dummy]);
       break;
     }
-
     case this.sensorTypes.LCD: {
       var text;
       var line = new Buffer(2);
@@ -836,6 +833,45 @@ Module.prototype.makeOutputBuffer = function (device, port, data) {
       ]);
 
       buffer = Buffer.concat([buffer, line, col, textLenBuf, text, dummy]);
+      break;
+    }
+    case this.sensorTypes.OLEDTEXT: {
+      var text;
+      var cmd = new Buffer(2);
+      var line = new Buffer(2);
+      var col = new Buffer(2);
+      var textLen = 0;
+      var textLenBuf = Buffer(2);
+
+      if ($.isPlainObject(data)) {
+        textLen = ("" + data.text).length;
+        // console.log(textLen);
+        text = Buffer.from("" + data.text, "ascii");
+        line.writeInt16LE(data.line);
+        textLenBuf.writeInt16LE(textLen);
+        col.writeInt16LE(data.column);
+        cmd.writeInt16LE(data.cmd);
+      } else {
+        textLen = 0;
+        text = Buffer.from("", "ascii");
+        line.writeInt16LE(0);
+        textLenBuf.writeInt16LE(textLen);
+        col.writeInt16LE(0);
+        cmd.writeInt16LE(1);
+      }
+
+      buffer = new Buffer([
+        255,
+        85,
+        4 + 8 + textLen,
+        sensorIdx,
+        this.actionTypes.MODUEL,
+        device,
+        port,
+      ]);
+
+      buffer = Buffer.concat([buffer, cmd, line, col, textLenBuf, text, dummy]);
+      console.log(buffer);
       break;
     }
 

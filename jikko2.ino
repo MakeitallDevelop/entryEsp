@@ -6,6 +6,13 @@
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
 
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
 // 핀 설정
 #define ALIVE 0
 #define DIGITAL 1
@@ -36,6 +43,7 @@
 #define MP3INIT 30
 #define MP3PLAY1 31
 #define MP3VOL 33
+#define OLEDTEXT 34
 
 // State Constant
 #define GET 1
@@ -67,6 +75,8 @@ int pos = 0;   // 서보모터 0~180 각도안에서만 조작된다.
 Servo myservo; // 서보모터 객체 생성
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(4, 33, NEO_GRB + NEO_KHZ800);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+int oled_text_size = 1;
 
 //dht 포트
 int dhtPin = 0;
@@ -461,7 +471,39 @@ void runModule(int device)
         lcd.print(txt);
     }
     break;
-        break;
+    case OLEDTEXT:
+    {
+        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+        int cmd = readBuffer(7);
+
+        if (cmd == 2)
+        { //text Size 읽어오기
+            oled_text_size = readBuffer(9);
+        }
+
+        if (cmd == 0) //print
+        {
+
+            int row = readBuffer(9);
+            int column = readBuffer(11);
+            int len = readBuffer(13);
+            String txt = readString(len, 15);
+
+            display.clearDisplay(); //버퍼 비우기
+            display.setTextSize(oled_text_size);
+            display.setTextColor(WHITE);
+            display.setCursor(column, row);
+            display.println(txt);
+            display.display();
+        }
+        else if (cmd == 1) //clear
+        {
+            display.clearDisplay();
+            display.display();
+        }
+    }
+    break;
     default:
         break;
     }
@@ -470,6 +512,7 @@ void runModule(int device)
 void sendPinvalues()
 {
     callOK();
+
     if (isDHThumi)
     {
         sendDHT();
