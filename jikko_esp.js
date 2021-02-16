@@ -161,9 +161,9 @@ Module.prototype.setSerialPort = function (sp) {
 Module.prototype.requestInitialData = function (sp) {
   // jikko 그대로 했을 때
   // 이 함수 때문에 펌웨어 무한업로드 문제 발생
-  this.sp = sp;
-  sp.set({ dtr: false, rts: true });
-  sp.set({ dtr: false, rts: false });
+  // this.sp = sp;
+  // sp.set({ dtr: false, rts: true });
+  // sp.set({ dtr: false, rts: false });
 
   return true;
 };
@@ -385,6 +385,12 @@ Module.prototype.handleLocalData = function (data) {
         self.sensorData.DHTHUMI = value;
         break;
       }
+      case self.sensorTypes.ULTRASONIC: {
+        self.sensorData.ULTRASONIC[port] = value;
+        // console.log(value);
+        //      console.log(self.sensorData.ULTRASONIC[port]);
+        break;
+      }
       /*
     case self.sensorTypes.DIGITAL: {
       self.sensorData.DIGITAL[port] = value;
@@ -399,12 +405,7 @@ Module.prototype.handleLocalData = function (data) {
       break;
     }
 
-    case self.sensorTypes.ULTRASONIC: {
-      self.sensorData.ULTRASONIC[port] = value;
-      //      console.log(port);
-      //      console.log(self.sensorData.ULTRASONIC[port]);
-      break;
-    }
+ 
     case self.sensorTypes.TIMER: {
       self.sensorData.TIMER = value;
       break;
@@ -819,42 +820,94 @@ case this.sensorTypes.DCMOTOR: {
       break;
     }
     case this.sensorTypes.OLEDTEXT: {
-      var text;
+      if ($.isPlainObject(data)) var oled_cmd = data.cmd;
+      else oled_cmd = 1;
       var cmd = new Buffer(2);
-      var line = new Buffer(2);
-      var col = new Buffer(2);
-      var textLen = 0;
-      var textLenBuf = Buffer(2);
 
-      if ($.isPlainObject(data)) {
-        textLen = ("" + data.text).length;
-        // console.log(textLen);
-        text = Buffer.from("" + data.text, "ascii");
-        line.writeInt16LE(data.line);
-        textLenBuf.writeInt16LE(textLen);
-        col.writeInt16LE(data.column);
-        cmd.writeInt16LE(data.cmd);
-      } else {
-        textLen = 0;
-        text = Buffer.from("", "ascii");
-        line.writeInt16LE(0);
-        textLenBuf.writeInt16LE(textLen);
-        col.writeInt16LE(0);
+      if (oled_cmd == 0) {
+        //print
+        var text;
+        var line = new Buffer(2);
+        var col = new Buffer(2);
+        var textLen = 0;
+        var textLenBuf = Buffer(2);
+
+        if ($.isPlainObject(data)) {
+          textLen = ("" + data.text).length;
+          // console.log(textLen);
+          text = Buffer.from("" + data.text, "ascii");
+          line.writeInt16LE(data.line);
+          textLenBuf.writeInt16LE(textLen);
+          col.writeInt16LE(data.column);
+          cmd.writeInt16LE(data.cmd);
+        } else {
+          textLen = 0;
+          text = Buffer.from("", "ascii");
+          line.writeInt16LE(0);
+          textLenBuf.writeInt16LE(textLen);
+          col.writeInt16LE(0);
+          cmd.writeInt16LE(1);
+        }
+
+        buffer = new Buffer([
+          255,
+          85,
+          4 + 8 + textLen,
+          sensorIdx,
+          this.actionTypes.MODUEL,
+          device,
+          port,
+        ]);
+
+        buffer = Buffer.concat([
+          buffer,
+          cmd,
+          line,
+          col,
+          textLenBuf,
+          text,
+          dummy,
+        ]);
+      } else if (oled_cmd == 1) {
+        //clear
         cmd.writeInt16LE(1);
+
+        buffer = new Buffer([
+          255,
+          85,
+          6,
+          sensorIdx,
+          this.actionTypes.MODUEL,
+          device,
+          port,
+        ]);
+        buffer = Buffer.concat([buffer, cmd, dummy]);
+      } else if (oled_cmd == 2) {
+        //size & color
+        var size = new Buffer(2);
+        var color = new Buffer(2);
+
+        if ($.isPlainObject(data)) {
+          size.writeInt16LE(data.size);
+          color.writeInt16LE(data.color);
+          cmd.writeInt16LE(data.cmd);
+        } else {
+          size.writeInt16LE(0);
+          color.writeInt16LE(0);
+          cmd.writeInt16LE(1);
+        }
+
+        buffer = new Buffer([
+          255,
+          85,
+          10,
+          sensorIdx,
+          this.actionTypes.MODUEL,
+          device,
+          port,
+        ]);
+        buffer = Buffer.concat([buffer, cmd, size, color, dummy]);
       }
-
-      buffer = new Buffer([
-        255,
-        85,
-        4 + 8 + textLen,
-        sensorIdx,
-        this.actionTypes.MODUEL,
-        device,
-        port,
-      ]);
-
-      buffer = Buffer.concat([buffer, cmd, line, col, textLenBuf, text, dummy]);
-      console.log(buffer);
       break;
     }
 

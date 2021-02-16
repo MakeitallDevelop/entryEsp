@@ -80,6 +80,7 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(4, 33, NEO_GRB + NEO_KHZ800);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 int oled_text_size = 1;
+int oled_text_color = 0;
 
 int touchPin = 0;
 
@@ -88,6 +89,9 @@ int dhtPin = 0;
 //dht
 dht myDHT11;
 
+int trigPin = 13;
+int echoPin = 12;
+int lastUltrasonic = 0;
 // Buffer
 char buffer[52];
 unsigned char prevc = 0;
@@ -98,6 +102,7 @@ boolean isStart = false;
 boolean isDHThumi = false;
 boolean isDHTtemp = false;
 boolean isTouch = false;
+boolean isUltrasonic = false;
 
 uint8_t command_index = 0;
 
@@ -222,7 +227,32 @@ void parseData()
     => 해당 함수에선 플래그 설정 및 setup()과 같이 핀모드 설정만 하고
     센서 작동 및 시리얼 전송은 sendPinValues()에서 실행
     */
-        if (device == DHTHUMI)
+        if (device == ULTRASONIC)
+        {
+            if (!isUltrasonic)
+            {
+                isUltrasonic = true;
+                trigPin = readBuffer(6);
+                echoPin = readBuffer(7);
+                pinMode(trigPin, OUTPUT);
+                pinMode(echoPin, INPUT);
+                delay(50);
+            }
+            else
+            {
+                int trig = readBuffer(6);
+                int echo = readBuffer(7);
+                if (trig != trigPin || echo != echoPin)
+                {
+                    trigPin = trig;
+                    echoPin = echo;
+                    pinMode(trigPin, OUTPUT);
+                    pinMode(echoPin, INPUT);
+                    delay(50);
+                }
+            }
+        }
+        else if (device == DHTHUMI)
         {
             isDHThumi = true;
             dhtPin = readBuffer(6);
@@ -440,6 +470,7 @@ void runModule(int device)
         if (cmd == 2)
         { //text Size 읽어오기
             oled_text_size = readBuffer(9);
+            oled_text_color = readBuffer(11);
         }
 
         if (cmd == 0) //print
@@ -452,7 +483,10 @@ void runModule(int device)
 
             display.clearDisplay(); //버퍼 비우기
             display.setTextSize(oled_text_size);
-            display.setTextColor(WHITE);
+            if (oled_text_color == 0)
+                display.setTextColor(WHITE);
+            else if (oled_text_color == 1)
+                display.setTextColor(BLACK, WHITE);
             display.setCursor(column, row);
             display.println(txt);
             display.display();
@@ -473,6 +507,11 @@ void sendPinvalues()
 {
     callOK();
 
+    if (isUltrasonic)
+    {
+        sendUltrasonic();
+        callOK();
+    }
     if (isDHThumi)
     {
         sendDHT();
@@ -488,6 +527,36 @@ void sendPinvalues()
         sendTouch();
         callOK();
     }
+}
+
+void sendUltrasonic()
+{
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
+
+    float value = pulseIn(echoPin, HIGH, 30000) / 29.0 / 2.0;
+    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+    display.setCursor(0, 0);
+    display.println(value);
+    display.display();
+    display.clearDisplay();
+    if (value == 0)
+    {
+        value = lastUltrasonic;
+    }
+    else
+    {
+        lastUltrasonic = value;
+    }
+    writeHead();
+    sendFloat(value);
+    writeSerial(trigPin);
+    writeSerial(echoPin);
+    writeSerial(ULTRASONIC);
+    writeEnd();
 }
 
 void sendTouch()
