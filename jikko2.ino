@@ -43,6 +43,9 @@
 #define MP3VOL 33
 #define OLEDTEXT 34
 #define TOUCH 35
+#define GYRO_X 36
+#define GYRO_Y 37
+#define GYRO_Z 38
 
 // State Constant
 #define GET 1
@@ -92,6 +95,10 @@ dht myDHT11;
 int trigPin = 13;
 int echoPin = 12;
 int lastUltrasonic = 0;
+// 자이로센서
+long gyroX, gyroY, gyroZ;
+float rotX, rotY, rotZ;
+
 // Buffer
 char buffer[52];
 unsigned char prevc = 0;
@@ -102,16 +109,36 @@ boolean isStart = false;
 boolean isDHThumi = false;
 boolean isDHTtemp = false;
 boolean isTouch = false;
-boolean isUltrasonic = false;
 
+boolean isGyro_x = false;
+boolean isGyro_y = false;
+boolean isGyro_z = false;
 uint8_t command_index = 0;
 
 void setup()
 {
     // myservo에 GPIO핀을 할당하는 함수
     Serial.begin(115200);
+    Wire.begin();
     initLCD();
     initNeo();
+    setupMPU();
+}
+
+void setupMPU()
+{
+    Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
+    Wire.write(0x6B);                  //Accessing the register 6B - Power Management (Sec. 4.28)
+    Wire.write(0b00000000);            //Setting SLEEP register to 0. (Required; see Note on p. 9)
+    Wire.endTransmission();
+    Wire.beginTransmission(0b1101000); //I2C address of the MPU
+    Wire.write(0x1B);                  //Accessing the register 1B - Gyroscope Configuration (Sec. 4.4)
+    Wire.write(0x00000000);            //Setting the gyro to full scale +/- 250deg./s
+    Wire.endTransmission();
+    Wire.beginTransmission(0b1101000); //I2C address of the MPU
+    Wire.write(0x1C);                  //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5)
+    Wire.write(0b00000000);            //Setting the accel to +/- 2g
+    Wire.endTransmission();
 }
 
 void initLCD()
@@ -266,8 +293,18 @@ void parseData()
         {
             isTouch = true;
             touchPin = readBuffer(6);
-            lcd.setCursor(0, 0);
-            lcd.print("isTouched");
+        }
+        else if (device == GYRO_X)
+        {
+            isGyro_x = true;
+        }
+        else if (device == GYRO_Y)
+        {
+            isGyro_y = true;
+        }
+        else if (device == GYRO_Z)
+        {
+            isGyro_z = true;
         }
     }
     break;
@@ -527,6 +564,11 @@ void sendPinvalues()
         sendTouch();
         callOK();
     }
+    if (isGyro_x || isGyro_y || isGyro_z)
+    {
+        sendGyro();
+        callOK();
+    }
 }
 
 void sendUltrasonic()
@@ -584,12 +626,6 @@ void sendTouch()
         break;
     }
     delay(50);
-    lcd.setCursor(0, 0);
-    lcd.print("sendTouch");
-    lcd.setCursor(0, 1);
-    lcd.print(touchPin);
-    lcd.setCursor(6, 1);
-    lcd.print(tp);
 
     writeHead();
     sendFloat(tp);
@@ -623,6 +659,43 @@ void sendDHT()
     }
 }
 
+void sendGyro()
+{
+    Wire.beginTransmission(0b1101000); //I2C address of the MPU
+    Wire.write(0x43);                  //Starting register for Gyro Readings
+    Wire.endTransmission();
+    Wire.requestFrom(0b1101000, 6); //Request Gyro Registers (43 - 48)
+    while (Wire.available() < 6)
+        ;
+    gyroX = Wire.read() << 8 | Wire.read(); //Store first two bytes into accelX
+    gyroY = Wire.read() << 8 | Wire.read(); //Store middle two bytes into accelY
+    gyroZ = Wire.read() << 8 | Wire.read(); //Store last two bytes into accelZ
+    rotX = gyroX / 131.0;
+    rotY = gyroY / 131.0;
+    rotZ = gyroZ / 131.0;
+
+    if (isGyro_x)
+    {
+        writeHead();
+        sendFloat(rotX);
+        writeSerial(GYRO_X);
+        writeEnd();
+    }
+    else if (isGyro_y)
+    {
+        writeHead();
+        sendFloat(rotY);
+        writeSerial(GYRO_Z);
+        writeEnd();
+    }
+    else if (isGyro_z)
+    {
+        writeHead();
+        sendFloat(rotZ);
+        writeSerial(GYRO_Z);
+        writeEnd();
+    }
+}
 void writeBuffer(int index, unsigned char c)
 {
     buffer[index] = c;

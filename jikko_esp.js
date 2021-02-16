@@ -32,6 +32,9 @@ function Module() {
     MP3VOL: 33,
     OLEDTEXT: 34,
     TOUCH: 35,
+    GYRO_X: 36,
+    GYRO_Y: 37,
+    GYRO_Z: 38,
   };
 
   this.actionTypes = {
@@ -135,6 +138,9 @@ function Module() {
     },
     PULSEIN: {},
     TIMER: 0,
+    GYRO_X: 0,
+    GYRO_Y: 0,
+    GYRO_Z: 0,
   };
 
   this.defaultOutput = {};
@@ -389,6 +395,23 @@ Module.prototype.handleLocalData = function (data) {
         self.sensorData.ULTRASONIC[port] = value;
         // console.log(value);
         //      console.log(self.sensorData.ULTRASONIC[port]);
+      }
+      case self.sensorTypes.GYRO_X: {
+        self.sensorData.GYRO_X = value;
+        console.log("Gyro X");
+        console.log(value);
+        break;
+      }
+      case self.sensorTypes.GYRO_Y: {
+        self.sensorData.GYRO_Y = value;
+        console.log("Gyro Y");
+        console.log(value);
+        break;
+      }
+      case self.sensorTypes.GYRO_Z: {
+        self.sensorData.GYRO_Z = value;
+        console.log("Gyro Z");
+        console.log(value);
         break;
       }
       /*
@@ -490,6 +513,39 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       10,
     ]);
   } else if (device == this.sensorTypes.DHTHUMI) {
+    buffer = new Buffer([
+      255,
+      85,
+      5,
+      sensorIdx,
+      this.actionTypes.GET,
+      device,
+      port,
+      10,
+    ]);
+  } else if (device == this.sensorTypes.GYRO_X) {
+    buffer = new Buffer([
+      255,
+      85,
+      5,
+      sensorIdx,
+      this.actionTypes.GET,
+      device,
+      port,
+      10,
+    ]);
+  } else if (device == this.sensorTypes.GYRO_Y) {
+    buffer = new Buffer([
+      255,
+      85,
+      5,
+      sensorIdx,
+      this.actionTypes.GET,
+      device,
+      port,
+      10,
+    ]);
+  } else if (device == this.sensorTypes.GYRO_Z) {
     buffer = new Buffer([
       255,
       85,
