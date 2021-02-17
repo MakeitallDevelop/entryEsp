@@ -68,7 +68,13 @@ union
     short shortVal;
 } valShort;
 
-// 13 ~ 33
+int analogs[40] = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
 
 const int ledChannel_A = 0;
 int freq = 5000;
@@ -92,9 +98,8 @@ int dhtPin = 0;
 //dht
 dht myDHT11;
 
-int trigPin = 13;
-int echoPin = 12;
-int lastUltrasonic = 0;
+int analogPin = 0;
+
 // 자이로센서
 long gyroX, gyroY, gyroZ;
 float rotX, rotY, rotZ;
@@ -109,10 +114,10 @@ boolean isStart = false;
 boolean isDHThumi = false;
 boolean isDHTtemp = false;
 boolean isTouch = false;
-
 boolean isGyro_x = false;
 boolean isGyro_y = false;
 boolean isGyro_z = false;
+
 uint8_t command_index = 0;
 
 void setup()
@@ -125,20 +130,19 @@ void setup()
     setupMPU();
 }
 
-void setupMPU()
-{
-    Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
-    Wire.write(0x6B);                  //Accessing the register 6B - Power Management (Sec. 4.28)
-    Wire.write(0b00000000);            //Setting SLEEP register to 0. (Required; see Note on p. 9)
-    Wire.endTransmission();
-    Wire.beginTransmission(0b1101000); //I2C address of the MPU
-    Wire.write(0x1B);                  //Accessing the register 1B - Gyroscope Configuration (Sec. 4.4)
-    Wire.write(0x00000000);            //Setting the gyro to full scale +/- 250deg./s
-    Wire.endTransmission();
-    Wire.beginTransmission(0b1101000); //I2C address of the MPU
-    Wire.write(0x1C);                  //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5)
-    Wire.write(0b00000000);            //Setting the accel to +/- 2g
-    Wire.endTransmission();
+void setupMPU(){
+  Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
+  Wire.write(0x6B); //Accessing the register 6B - Power Management (Sec. 4.28)
+  Wire.write(0b00000000); //Setting SLEEP register to 0. (Required; see Note on p. 9)
+  Wire.endTransmission();  
+  Wire.beginTransmission(0b1101000); //I2C address of the MPU
+  Wire.write(0x1B); //Accessing the register 1B - Gyroscope Configuration (Sec. 4.4) 
+  Wire.write(0x00000000); //Setting the gyro to full scale +/- 250deg./s 
+  Wire.endTransmission(); 
+  Wire.beginTransmission(0b1101000); //I2C address of the MPU
+  Wire.write(0x1C); //Accessing the register 1C - Acccelerometer Configuration (Sec. 4.5) 
+  Wire.write(0b00000000); //Setting the accel to +/- 2g
+  Wire.endTransmission(); 
 }
 
 void initLCD()
@@ -254,32 +258,7 @@ void parseData()
     => 해당 함수에선 플래그 설정 및 setup()과 같이 핀모드 설정만 하고
     센서 작동 및 시리얼 전송은 sendPinValues()에서 실행
     */
-        if (device == ULTRASONIC)
-        {
-            if (!isUltrasonic)
-            {
-                isUltrasonic = true;
-                trigPin = readBuffer(6);
-                echoPin = readBuffer(7);
-                pinMode(trigPin, OUTPUT);
-                pinMode(echoPin, INPUT);
-                delay(50);
-            }
-            else
-            {
-                int trig = readBuffer(6);
-                int echo = readBuffer(7);
-                if (trig != trigPin || echo != echoPin)
-                {
-                    trigPin = trig;
-                    echoPin = echo;
-                    pinMode(trigPin, OUTPUT);
-                    pinMode(echoPin, INPUT);
-                    delay(50);
-                }
-            }
-        }
-        else if (device == DHTHUMI)
+        if (device == DHTHUMI)
         {
             isDHThumi = true;
             dhtPin = readBuffer(6);
@@ -305,6 +284,11 @@ void parseData()
         else if (device == GYRO_Z)
         {
             isGyro_z = true;
+        }
+        else if(device == ANALOG)
+        {
+            analogPin = readBuffer(6);
+            analogs[analogPin] = 1;
         }
     }
     break;
@@ -502,37 +486,37 @@ void runModule(int device)
     {
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
-        int cmd = readBuffer(7);
+    int cmd = readBuffer(7);
 
-        if (cmd == 2)
-        { //text Size 읽어오기
-            oled_text_size = readBuffer(9);
-            oled_text_color = readBuffer(11);
-        }
+    if (cmd == 2)
+    { //text Size 읽어오기
+      oled_text_size = readBuffer(9);
+      oled_text_color = readBuffer(11);
+    }
 
-        if (cmd == 0) //print
-        {
+    if (cmd == 0) //print
+    {
 
-            int row = readBuffer(9);
-            int column = readBuffer(11);
-            int len = readBuffer(13);
-            String txt = readString(len, 15);
+      int row = readBuffer(9);
+      int column = readBuffer(11);
+      int len = readBuffer(13);
+      String txt = readString(len, 15);
 
-            display.clearDisplay(); //버퍼 비우기
-            display.setTextSize(oled_text_size);
-            if (oled_text_color == 0)
-                display.setTextColor(WHITE);
-            else if (oled_text_color == 1)
-                display.setTextColor(BLACK, WHITE);
-            display.setCursor(column, row);
-            display.println(txt);
-            display.display();
-        }
-        else if (cmd == 1) //clear
-        {
-            display.clearDisplay();
-            display.display();
-        }
+      display.clearDisplay(); //버퍼 비우기
+      display.setTextSize(oled_text_size);
+      if (oled_text_color == 0)
+        display.setTextColor(WHITE);
+      else if (oled_text_color == 1)
+        display.setTextColor(BLACK, WHITE);
+      display.setCursor(column, row);
+      display.println(txt);
+      display.display();
+    }
+    else if (cmd == 1) //clear
+    {
+      display.clearDisplay();
+      display.display();
+    }
     }
     break;
     default:
@@ -544,11 +528,14 @@ void sendPinvalues()
 {
     callOK();
 
-    if (isUltrasonic)
-    {
-        sendUltrasonic();
-        callOK();
+    int pinNumber = 0;
+    for (pinNumber = 2; pinNumber < 40; pinNumber++){
+        if(analogs[pinNumber] == 1){
+            sendAnalogValue(pinNumber);
+            callOK();
+        }
     }
+
     if (isDHThumi)
     {
         sendDHT();
@@ -569,35 +556,20 @@ void sendPinvalues()
         sendGyro();
         callOK();
     }
+    // if (isAnalog)
+    // {
+    //     sendAnalog();
+    //     callOK();
+    // }
 }
 
-void sendUltrasonic()
-{
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
+void sendAnalogValue(int pinNumber){
+    float val = analogRead(pinNumber);
 
-    float value = pulseIn(echoPin, HIGH, 30000) / 29.0 / 2.0;
-    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-    display.setCursor(0, 0);
-    display.println(value);
-    display.display();
-    display.clearDisplay();
-    if (value == 0)
-    {
-        value = lastUltrasonic;
-    }
-    else
-    {
-        lastUltrasonic = value;
-    }
     writeHead();
-    sendFloat(value);
-    writeSerial(trigPin);
-    writeSerial(echoPin);
-    writeSerial(ULTRASONIC);
+    sendFloat((int)val);
+    writeSerial(pinNumber);
+    writeSerial(ANALOG);
     writeEnd();
 }
 
@@ -659,37 +631,44 @@ void sendDHT()
     }
 }
 
+void sendAnalog()
+{
+    float val = analogRead(analogPin);
+
+    writeHead();
+    sendFloat((int)val);
+    writeSerial(analogPin);
+    writeSerial(ANALOG);
+    writeEnd();
+}
+
 void sendGyro()
 {
     Wire.beginTransmission(0b1101000); //I2C address of the MPU
-    Wire.write(0x43);                  //Starting register for Gyro Readings
+    Wire.write(0x43); //Starting register for Gyro Readings
     Wire.endTransmission();
-    Wire.requestFrom(0b1101000, 6); //Request Gyro Registers (43 - 48)
-    while (Wire.available() < 6)
-        ;
-    gyroX = Wire.read() << 8 | Wire.read(); //Store first two bytes into accelX
-    gyroY = Wire.read() << 8 | Wire.read(); //Store middle two bytes into accelY
-    gyroZ = Wire.read() << 8 | Wire.read(); //Store last two bytes into accelZ
+    Wire.requestFrom(0b1101000,6); //Request Gyro Registers (43 - 48)
+    while(Wire.available() < 6);
+    gyroX = Wire.read()<<8|Wire.read(); //Store first two bytes into accelX
+    gyroY = Wire.read()<<8|Wire.read(); //Store middle two bytes into accelY
+    gyroZ = Wire.read()<<8|Wire.read(); //Store last two bytes into accelZ
     rotX = gyroX / 131.0;
-    rotY = gyroY / 131.0;
-    rotZ = gyroZ / 131.0;
+    rotY = gyroY / 131.0; 
+    rotZ = gyroZ / 131.0;    
 
-    if (isGyro_x)
-    {
+    if (isGyro_x){
         writeHead();
         sendFloat(rotX);
         writeSerial(GYRO_X);
         writeEnd();
     }
-    else if (isGyro_y)
-    {
+    if (isGyro_y){
         writeHead();
         sendFloat(rotY);
-        writeSerial(GYRO_Z);
+        writeSerial(GYRO_Y);
         writeEnd();
     }
-    else if (isGyro_z)
-    {
+    if (isGyro_z){
         writeHead();
         sendFloat(rotZ);
         writeSerial(GYRO_Z);
