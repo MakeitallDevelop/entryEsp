@@ -93,6 +93,9 @@ int oled_text_size = 1;
 int oled_text_color = 0;
 
 int touchPin = 0;
+int trigPin = 13;
+int echoPin = 12;
+int lastUltrasonic = 0;
 
 // 포트
 int dhtPin = 0;
@@ -160,6 +163,7 @@ void initNeo()
   strip.begin();
   strip.show();
 }
+
 void loop()
 {
   while (Serial.available())
@@ -284,12 +288,13 @@ void parseData()
           pinMode(echoPin, INPUT);
           delay(50);
         }
+        }
+        }
         else if(device == ANALOG)
         {
             analogPin = readBuffer(6);
             analogs[analogPin] = 1;
         }
-    }
     else if (device == DHTHUMI)
     {
       isDHThumi = true;
@@ -511,19 +516,11 @@ void runModule(int device)
   break;
   case OLEDTEXT:
   {
-    if (!isStartOled)
+      if (!isStartOled)
     {
       display_oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);
       display_oled.clearDisplay();
       isStartOled = true;
-    }
-
-    int cmd = readBuffer(7);
-
-    if (cmd == 2)
-    { //text Size 읽어오기
-      oled_text_size = readBuffer(9);
-      oled_text_color = readBuffer(11);
     }
 
     int cmd = readBuffer(7);
@@ -542,21 +539,13 @@ void runModule(int device)
       int len = readBuffer(13);
       String txt = readString(len, 15);
 
-      display.clearDisplay(); //버퍼 비우기
-      display.setTextSize(oled_text_size);
+      display_oled.setTextSize(oled_text_size);
       if (oled_text_color == 0)
-        display.setTextColor(WHITE);
+        display_oled.setTextColor(WHITE);
       else if (oled_text_color == 1)
-        display.setTextColor(BLACK, WHITE);
-      display.setCursor(column, row);
-      display.println(txt);
-      display.display();
-    }
-    else if (cmd == 1) //clear
-    {
-      display.clearDisplay();
-      display.display();
-    }
+        display_oled.setTextColor(BLACK, WHITE);
+      display_oled.setCursor(column, row);
+      display_oled.println(txt);
     }
     else if (cmd == 3) //display
     {
@@ -569,8 +558,6 @@ void runModule(int device)
     }
   }
   break;
-  default:
-    break;
   }
 }
 
