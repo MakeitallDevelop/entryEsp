@@ -167,9 +167,9 @@ Module.prototype.setSerialPort = function (sp) {
 Module.prototype.requestInitialData = function (sp) {
   // jikko 그대로 했을 때
   // 이 함수 때문에 펌웨어 무한업로드 문제 발생
-  // this.sp = sp;
-  // sp.set({ dtr: false, rts: true });
-  // sp.set({ dtr: false, rts: false });
+  this.sp = sp;
+  sp.set({ dtr: false, rts: true });
+  sp.set({ dtr: false, rts: false });
 
   return true;
 };
@@ -379,8 +379,8 @@ Module.prototype.handleLocalData = function (data) {
     switch (type) {
       case self.sensorTypes.TOUCH: {
         self.sensorData.TOUCH = value;
-        console.log("touch value:");
-        console.log(value);
+        // console.log('touch value:');
+        // console.log(value);
         break;
       }
       case self.sensorTypes.DHTTEMP: {
@@ -394,7 +394,7 @@ Module.prototype.handleLocalData = function (data) {
       case self.sensorTypes.ULTRASONIC: {
         self.sensorData.ULTRASONIC[port] = value;
         // console.log(value);
-        //      console.log(self.sensorData.ULTRASONIC[port]);
+        // console.log(self.sensorData.ULTRASONIC[port]);
       }
       case self.sensorTypes.GYRO_X: {
         self.sensorData.GYRO_X = value;
@@ -534,6 +534,7 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       port,
       10,
     ]);
+    console.log(buffer);
   } else if (device == this.sensorTypes.GYRO_Y) {
     buffer = new Buffer([
       255,
@@ -924,6 +925,7 @@ case this.sensorTypes.DCMOTOR: {
           text,
           dummy,
         ]);
+        //   console.log(buffer);
       } else if (oled_cmd == 1) {
         //clear
         cmd.writeInt16LE(1);
@@ -963,6 +965,19 @@ case this.sensorTypes.DCMOTOR: {
           port,
         ]);
         buffer = Buffer.concat([buffer, cmd, size, color, dummy]);
+      } else if (oled_cmd == 3) {
+        cmd.writeInt16LE(3);
+
+        buffer = new Buffer([
+          255,
+          85,
+          6,
+          sensorIdx,
+          this.actionTypes.MODUEL,
+          device,
+          port,
+        ]);
+        buffer = Buffer.concat([buffer, cmd, dummy]);
       }
       break;
     }

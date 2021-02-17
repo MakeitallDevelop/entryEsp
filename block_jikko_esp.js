@@ -59,7 +59,7 @@ Entry.jikko_esp = {
     MP3PLAY1: 31,
     MP3PLAY2: 32,
     MP3VOL: 33,
-    RESET_: 34,
+    OLEDTEXT: 34,
     TOUCH: 35,
     GYRO_X: 36,
     GYRO_Y: 37,
@@ -134,10 +134,11 @@ Entry.jikko_esp.setLanguage = function () {
         jikko_esp_get_digital: "디지털 %1 핀 읽기",
         jikko_esp_get_digital_toggle: "디지털 %1 핀 센서 값",
         jikko_esp_set_digital_toggle: "디지털 %1 핀 %2 %3",
-        jikko_esp_toggle_led: "디지털 %1 핀 pwm %2 으로 켜기 %3",
+        jikko_esp_toggle_led: "디지털 %1 핀 %2  %3",
         jikko_esp_set_led_toggle: "LED %1 핀 %2 %3",
 
-        jikko_esp_set_digital_pwm: "LED (PWM %1 핀)밝기 %2 출력 (0 ~ 255)%3",
+        jikko_esp_set_digital_pwm:
+          "PWM %1 핀 채널: %2 주파수: %3 해상도: %4 값:%5 출력 %6",
         jikko_esp_set_digital_servo: "서보 모터 %1 핀 %2 각도로 회전 %3",
         jikko_esp_set_digital_buzzer_toggle: "피에조부저 %1 핀 %2 %3",
         jikko_esp_set_digital_buzzer_volume:
@@ -159,6 +160,10 @@ Entry.jikko_esp.setLanguage = function () {
         jikko_esp_get_lcd_col: "%1",
         jikko_esp_module_digital_lcd: "LCD화면 %1 열 %2 행 부터 %3 출력 %4",
         jikko_esp_lcd_clear: "LCD 화면 지우기 %1",
+        jikko_esp_module_digital_oled: "OLED 화면 %1 열 %2 행 부터 %3 입력 %4",
+        jikko_esp_oled_display: "OLED 문자열 출력하기 %1",
+        jikko_esp_oled_clear: "OLED 화면 지우기 %1",
+        jikko_esp_oled_text_size: "OLED 글씨 크기 %1 색상 %2로 설정 %3",
         jikko_esp_get_dht_temp_value: "DHT11 온습도센서(out %1)의 온도(°C)값",
         jikko_esp_get_dht_humi_value: "DHT11 온습도센서(out %1)의 습도(%)값",
 
@@ -166,9 +171,8 @@ Entry.jikko_esp.setLanguage = function () {
         jikko_esp_set_mp3_play: "mp3 %1 번 파일 재생 %2",
         jikko_esp_set_mp3_play2: "mp3 %1 번 파일 %2 초 동안 재생 %3",
         jikko_esp_set_mp3_vol: "mp3 볼륨 %1 으로 설정 (0 ~ 30) %2",
-
         jikko_esp_touch: "%1 핀 터치센서 터치 상태",
-        jikko_get_gyro: '자이로 센서 %1값',
+        jikko_get_gyro: "자이로 센서 %1값",
       },
     },
     en: {
@@ -221,9 +225,7 @@ Entry.jikko_esp.setLanguage = function () {
         jikko_esp_set_mp3_play: "mp3 %1 번 파일 재생 %2",
         jikko_esp_set_mp3_play2: "mp3 %1 번 파일 %2 초 동안 재생 %3",
         jikko_esp_set_mp3_vol: "mp3 볼륨 %1 으로 설정 (0 ~ 30) %2",
-
-        jikko_esp_touch: "%1 핀 터치센서 터치 상태",
-        jikko_get_gyro: '자이로 센서 %1값',
+        jikko_get_gyro: "자이로 센서 %1값",
       },
     },
   };
@@ -232,11 +234,13 @@ Entry.jikko_esp.blockMenuBlocks = [
   //'jikko_esp_set_digital_toggle',
   "jikko_esp_toggle_led",
   "jikko_esp_set_digital_servo",
+  "jikko_esp_set_digital_pwm",
   // 'jikko_esp_set_digital_buzzer_toggle',
   // 'jikko_esp_set_digital_buzzer_volume',
   // 'jikko_esp_set_digital_buzzer',
   "jikko_esp_get_dht_temp_value",
   "jikko_esp_get_dht_humi_value",
+  "jikko_esp_get_digital_ultrasonic",
   "jikko_esp_set_neopixel_init",
   "jikko_esp_set_neopixel_bright",
   "jikko_esp_set_neopixel",
@@ -247,10 +251,15 @@ Entry.jikko_esp.blockMenuBlocks = [
   "jikko_esp_get_lcd_row",
   "jikko_esp_get_lcd_col",
   "jikko_esp_lcd_clear",
-  // 'jikko_esp_set_mp3_init',
-  // 'jikko_esp_set_mp3_vol',
-  // 'jikko_esp_set_mp3_play',
-  // 'jikko_esp_set_mp3_play2',
+  "jikko_esp_module_digital_oled",
+  "jikko_esp_oled_display",
+  "jikko_esp_oled_clear",
+  "jikko_esp_oled_text_size",
+
+  "jikko_esp_set_mp3_init",
+  "jikko_esp_set_mp3_vol",
+  "jikko_esp_set_mp3_play",
+  "jikko_esp_set_mp3_play2",
   "jikko_esp_touch",
   "jikko_get_gyro",
 ];
@@ -271,12 +280,10 @@ Entry.jikko_esp.getBlocks = function () {
         {
           type: "Block",
           accept: "string",
-          defaultType: "number",
         },
         {
           type: "Block",
           accept: "string",
-          defaultType: "number",
         },
         {
           type: "Indicator",
@@ -288,12 +295,11 @@ Entry.jikko_esp.getBlocks = function () {
       def: {
         params: [
           {
-            type: "text",
+            type: "jikko_esp_list_digital_basic",
             params: ["26"],
           },
           {
-            type: "text",
-            params: ["100"],
+            type: "jikko_esp_list_digital_toggle_en",
           },
           null,
         ],
@@ -307,7 +313,18 @@ Entry.jikko_esp.getBlocks = function () {
       isNotFor: ["jikko_esp"],
       func(sprite, script) {
         const port = script.getNumberValue("PORT");
-        let value = script.getNumberValue("VALUE");
+        let value = script.getValue("VALUE");
+        if (typeof value === "string") {
+          value = value.toLowerCase();
+        }
+        if (Entry.jikko.highList.indexOf(value) > -1) {
+          value = 255;
+        } else if (Entry.jikko.lowList.indexOf(value) > -1) {
+          value = 0;
+        } else {
+          throw new Error();
+        }
+
         if (!Entry.hw.sendQueue["SET"]) {
           Entry.hw.sendQueue["SET"] = {};
         }
@@ -381,18 +398,9 @@ Entry.jikko_esp.getBlocks = function () {
         {
           type: "Dropdown",
           options: [
-            ["0", "0"],
-            ["1", "1"],
             ["2", "2"],
-            ["3", "3"],
             ["4", "4"],
             ["5", "5"],
-            ["6", "6"],
-            ["7", "7"],
-            ["8", "8"],
-            ["9", "9"],
-            ["10", "10"],
-            ["11", "11"],
             ["12", "12"],
             ["13", "13"],
             ["14", "14"],
@@ -401,18 +409,10 @@ Entry.jikko_esp.getBlocks = function () {
             ["17", "17"],
             ["18", "18"],
             ["19", "19"],
-            ["20", "20"],
-            ["21", "21"],
-            ["22", "22"],
             ["23", "23"],
-            ["24", "24"],
             ["25", "25"],
             ["26", "26"],
             ["27", "27"],
-            ["28", "28"],
-            ["29", "29"],
-            ["30", "30"],
-            ["31", "31"],
             ["32", "32"],
             ["33", "33"],
           ],
@@ -467,40 +467,6 @@ Entry.jikko_esp.getBlocks = function () {
       },
       func: function (sprite, script) {
         return script.getField("OCTAVE");
-      },
-    },
-    jikko_esp_list_digital_pwm: {
-      color: EntryStatic.colorSet.block.default.HARDWARE,
-      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
-      skeleton: "basic_string_field",
-      statements: [],
-      template: "%1",
-      params: [
-        {
-          type: "Dropdown",
-          options: [
-            ["3", "3"],
-            ["5", "5"],
-            ["6", "6"],
-            ["9", "9"],
-            ["10", "10"],
-            ["11", "11"],
-          ],
-          value: "11",
-          fontSize: 11,
-          bgColor: EntryStatic.colorSet.block.darken.HARDWARE,
-          arrowColor: EntryStatic.colorSet.arrow.default.HARDWARE,
-        },
-      ],
-      events: {},
-      def: {
-        params: [null],
-      },
-      paramsKeyMap: {
-        PORT: 0,
-      },
-      func: function (sprite, script) {
-        return script.getStringField("PORT");
       },
     },
     jikko_esp_list_digital_toggle: {
@@ -2080,6 +2046,18 @@ Entry.jikko_esp.getBlocks = function () {
           accept: "string",
         },
         {
+          type: "Block",
+          accept: "string",
+        },
+        {
+          type: "Block",
+          accept: "string",
+        },
+        {
+          type: "Block",
+          accept: "string",
+        },
+        {
           type: "Indicator",
           img: "block_icon/hardware_icon.svg",
           size: 12,
@@ -2089,39 +2067,62 @@ Entry.jikko_esp.getBlocks = function () {
       def: {
         params: [
           {
-            type: "jikko_esp_list_digital_pwm",
+            type: "jikko_esp_list_digital_basic",
             params: ["5"],
+          },
+          {
+            type: "text",
+            params: ["0"],
+          },
+          {
+            type: "text",
+            params: ["5000"],
+          },
+          {
+            type: "text",
+            params: ["8"],
           },
           {
             type: "text",
             params: ["255"],
           },
+
           null,
         ],
         type: "jikko_esp_set_digital_pwm",
       },
       paramsKeyMap: {
         PORT: 0,
-        VALUE: 1,
+        CHANNEL: 1,
+        FREQ: 2,
+        RESOL: 3,
+        DUTY: 4,
       },
       class: "jikko_espLed",
       isNotFor: ["jikko_esp"],
       func: function (sprite, script) {
         var port = script.getNumberValue("PORT");
-        var value = script.getNumberValue("VALUE");
+        var channel = script.getNumberValue("CHANNEL");
+        var freq = script.getNumberValue("FREQ");
+        var resol = script.getNumberValue("RESOL");
+        var duty = script.getNumberValue("DUTY");
 
-        value = Math.round(value);
-        value = Math.min(value, 255);
-        value = Math.max(value, 0);
+        duty = Math.round(duty);
+        duty = Math.min(duty, 255);
+        duty = Math.max(duty, 0);
         if (!Entry.hw.sendQueue["SET"]) {
           Entry.hw.sendQueue["SET"] = {};
         }
         Entry.hw.sendQueue["SET"][port] = {
           type: Entry.jikko_esp.sensorTypes.PWM,
-          data: value,
+          data: {
+            channel: channel,
+            freq: freq,
+            resol: resol,
+            duty: duty,
+          },
           time: new Date().getTime(),
         };
-
         return script.callReturn();
       },
       syntax: { js: [], py: ["jikko_esp.set_digital_pwm(%1, %2)"] },
@@ -2826,12 +2827,12 @@ Entry.jikko_esp.getBlocks = function () {
       def: {
         params: [
           {
-            type: "arduino_get_port_number",
-            params: ["10"],
+            type: "jikko_esp_list_digital_basic",
+            params: ["16"],
           },
           {
-            type: "arduino_get_port_number",
-            params: ["11"],
+            type: "jikko_esp_list_digital_basic",
+            params: ["17"],
           },
           null,
         ],
@@ -3119,15 +3120,16 @@ Entry.jikko_esp.getBlocks = function () {
       fontColor: "#fff",
       skeleton: "basic",
       statements: [],
-      template: Lang.template.jikko_esp_module_digital_oled,
       params: [
         {
           type: "Block",
           accept: "string",
+          defaultType: "number",
         },
         {
           type: "Block",
           accept: "string",
+          defaultType: "number",
         },
         {
           type: "Block",
@@ -3144,45 +3146,33 @@ Entry.jikko_esp.getBlocks = function () {
         params: [
           {
             type: "text",
-            params: ["20"],
+            params: ["0"],
           },
           {
             type: "text",
-            params: ["20"],
+            params: ["0"],
           },
           {
             type: "text",
-            params: ["My Entry!!"],
+            params: ["Hello, Jikko"],
           },
           null,
         ],
         type: "jikko_esp_module_digital_oled",
       },
       paramsKeyMap: {
-        VALUE0: 0,
-        VALUE1: 1,
+        COL: 0,
+        ROW: 1,
         STRING: 2,
       },
-      class: "jikko_espModule",
+      class: "jikkoModule",
       isNotFor: ["jikko_esp"],
       func: function (sprite, script) {
-        var port = 0;
-        var coodinate_x = script.getNumberValue("VALUE0");
-        var coodinate_y = script.getNumberValue("VALUE1");
-        var string = script.getValue("STRING");
-        var text = [];
+        var row = script.getNumberValue("ROW");
+        var col = script.getNumberValue("COL");
+        var text = script.getValue("STRING");
 
         if (!script.isStart) {
-          if (typeof string === "string") {
-            for (var i = 0; i < string.length; i++) {
-              text[i] = string.charCodeAt(i);
-            }
-          } else if (typeof string === "number") {
-            text[0] = 1;
-            text[1] = string / 1;
-          } else {
-            text[0] = string;
-          }
           if (!Entry.hw.sendQueue["SET"]) {
             Entry.hw.sendQueue["SET"] = {};
           }
@@ -3190,34 +3180,15 @@ Entry.jikko_esp.getBlocks = function () {
           script.isStart = true;
           script.timeFlag = 1;
           var fps = Entry.FPS || 60;
-          var timeValue = (60 / fps) * 50;
+          var timeValue = (60 / fps) * 100;
 
-          coodinate_x = Math.min(coodinate_x, 127);
-          coodinate_x = Math.max(coodinate_x, 0);
-          coodinate_y = Math.min(coodinate_y, 63);
-          coodinate_y = Math.max(coodinate_y, 0);
-
-          Entry.hw.sendQueue["SET"][port] = {
-            type: Entry.jikko_esp.sensorTypes.OLED,
+          Entry.hw.sendQueue["SET"][1] = {
+            type: Entry.jikko_esp.sensorTypes.OLEDTEXT,
             data: {
-              value0: coodinate_x,
-              value1: coodinate_y,
-              text0: text[0],
-              text1: text[1],
-              text2: text[2],
-              text3: text[3],
-              text4: text[4],
-              text5: text[5],
-              text6: text[6],
-              text7: text[7],
-              text8: text[8],
-              text9: text[9],
-              text10: text[10],
-              text11: text[11],
-              text12: text[12],
-              text13: text[13],
-              text14: text[14],
-              text15: text[15],
+              cmd: 0,
+              line: row,
+              column: col,
+              text: text,
             },
             time: new Date().getTime(),
           };
@@ -3235,7 +3206,234 @@ Entry.jikko_esp.getBlocks = function () {
           return script.callReturn();
         }
       },
-      syntax: { js: [], py: ["jikko_esp.Module_digital_oled(%1, %2, %3)"] },
+      syntax: { js: [], py: ["jikko.module_digital_lcd(%1, %2)"] },
+    },
+    jikko_esp_oled_clear: {
+      color: EntryStatic.colorSet.block.default.HARDWARE,
+      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
+      skeleton: "basic",
+      statements: [],
+      params: [
+        {
+          type: "Indicator",
+          img: "block_icon/hardware_icon.svg",
+          size: 12,
+        },
+      ],
+      events: {},
+      def: {
+        params: [],
+        type: "jikko_esp_oled_clear",
+      },
+      class: "jikkoModule",
+      isNotFor: ["jikko_esp"],
+      func(sprite, script) {
+        if (!script.isStart) {
+          if (!Entry.hw.sendQueue["SET"]) {
+            Entry.hw.sendQueue["SET"] = {};
+          }
+
+          script.isStart = true;
+          script.timeFlag = 1;
+          var fps = Entry.FPS || 60;
+          var timeValue = (60 / fps) * 50;
+
+          Entry.hw.sendQueue["SET"][1] = {
+            type: Entry.jikko_esp.sensorTypes.OLEDTEXT,
+            data: {
+              cmd: 1,
+            },
+            time: new Date().getTime(),
+          };
+
+          setTimeout(function () {
+            script.timeFlag = 0;
+          }, timeValue);
+          return script;
+        } else if (script.timeFlag == 1) {
+          return script;
+        } else {
+          delete script.timeFlag;
+          delete script.isStart;
+          Entry.engine.isContinue = false;
+          return script.callReturn();
+        }
+      },
+      syntax: {
+        js: [],
+        py: [{}],
+      },
+    },
+    jikko_esp_oled_display: {
+      color: EntryStatic.colorSet.block.default.HARDWARE,
+      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
+      skeleton: "basic",
+      statements: [],
+      params: [
+        {
+          type: "Indicator",
+          img: "block_icon/hardware_icon.svg",
+          size: 12,
+        },
+      ],
+      events: {},
+      def: {
+        params: [],
+        type: "jikko_esp_oled_display",
+      },
+      class: "jikkoModule",
+      isNotFor: ["jikko_esp"],
+      func(sprite, script) {
+        if (!script.isStart) {
+          if (!Entry.hw.sendQueue["SET"]) {
+            Entry.hw.sendQueue["SET"] = {};
+          }
+
+          script.isStart = true;
+          script.timeFlag = 1;
+          var fps = Entry.FPS || 60;
+          var timeValue = (60 / fps) * 50;
+
+          Entry.hw.sendQueue["SET"][1] = {
+            type: Entry.jikko_esp.sensorTypes.OLEDTEXT,
+            data: {
+              cmd: 3,
+            },
+            time: new Date().getTime(),
+          };
+
+          setTimeout(function () {
+            script.timeFlag = 0;
+          }, timeValue);
+          return script;
+        } else if (script.timeFlag == 1) {
+          return script;
+        } else {
+          delete script.timeFlag;
+          delete script.isStart;
+          Entry.engine.isContinue = false;
+          return script.callReturn();
+        }
+      },
+      syntax: {
+        js: [],
+        py: [{}],
+      },
+    },
+    jikko_list_oled_color: {
+      color: EntryStatic.colorSet.block.default.HARDWARE,
+      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
+      skeleton: "basic_string_field",
+      statements: [],
+      template: "%1",
+      params: [
+        {
+          type: "Dropdown",
+          options: [
+            ["흰색", "0"],
+            ["검정색", "1"],
+          ],
+          value: "0",
+          fontSize: 11,
+          bgColor: EntryStatic.colorSet.block.darken.HARDWARE,
+          arrowColor: EntryStatic.colorSet.arrow.default.HARDWARE,
+        },
+      ],
+      events: {},
+      def: {
+        params: [null],
+      },
+      paramsKeyMap: {
+        NUM: 0,
+      },
+      func: function (sprite, script) {
+        return script.getField("NUM");
+      },
+    },
+    jikko_esp_oled_text_size: {
+      color: EntryStatic.colorSet.block.default.HARDWARE,
+      outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
+      skeleton: "basic",
+      statements: [],
+      params: [
+        {
+          type: "Block",
+          accept: "string",
+          defaultType: "number",
+        },
+        {
+          type: "Block",
+          accept: "string",
+          defaultType: "number",
+        },
+        {
+          type: "Indicator",
+          img: "block_icon/hardware_icon.svg",
+          size: 12,
+        },
+      ],
+      events: {},
+      def: {
+        params: [
+          {
+            type: "text",
+            params: ["1"],
+          },
+          {
+            type: "jikko_list_oled_color",
+            params: ["0"],
+          },
+          null,
+        ],
+        type: "jikko_esp_oled_text_size",
+      },
+      paramsKeyMap: {
+        SIZE: 0,
+        COLOR: 1,
+      },
+
+      class: "jikkoModule",
+      isNotFor: ["jikko_esp"],
+      func(sprite, script) {
+        var size = script.getNumberValue("SIZE");
+        var color = script.getNumberValue("COLOR");
+        if (!script.isStart) {
+          if (!Entry.hw.sendQueue["SET"]) {
+            Entry.hw.sendQueue["SET"] = {};
+          }
+
+          script.isStart = true;
+          script.timeFlag = 1;
+          var fps = Entry.FPS || 60;
+          var timeValue = (60 / fps) * 50;
+
+          Entry.hw.sendQueue["SET"][1] = {
+            type: Entry.jikko_esp.sensorTypes.OLEDTEXT,
+            data: {
+              cmd: 2,
+              size: size,
+              color: color,
+            },
+            time: new Date().getTime(),
+          };
+
+          setTimeout(function () {
+            script.timeFlag = 0;
+          }, timeValue);
+          return script;
+        } else if (script.timeFlag == 1) {
+          return script;
+        } else {
+          delete script.timeFlag;
+          delete script.isStart;
+          Entry.engine.isContinue = false;
+          return script.callReturn();
+        }
+      },
+      syntax: {
+        js: [],
+        py: [{}],
+      },
     },
     jikko_esp_module_digital_bluetooth: {
       color: EntryStatic.colorSet.block.default.HARDWARE,
@@ -3331,25 +3529,26 @@ Entry.jikko_esp.getBlocks = function () {
       },
       syntax: { js: [], py: ["jikko_esp.module_digital_bluetooth(%1)"] },
     },
+
     jikko_list_touch: {
       color: EntryStatic.colorSet.block.default.HARDWARE,
       outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
-      skeleton: 'basic_string_field',
+      skeleton: "basic_string_field",
       statements: [],
-      template: '%1',
+      template: "%1",
       params: [
         {
-          type: 'Dropdown',
+          type: "Dropdown",
           options: [
-            ['IO2', '2'],
-            ['IO32', '32'],
-            ['IO33', '33'],
-            ['IO13', '13'],
-            ['IO14', '14'],
-            ['IO15', '15'],
-            ['IO27', '27'],
+            ["IO2", "2"],
+            ["IO32", "32"],
+            ["IO33", "33"],
+            ["IO13", "13"],
+            ["IO14", "14"],
+            ["IO15", "15"],
+            ["IO27", "27"],
           ],
-          value: '2',
+          value: "2",
           fontSize: 11,
           bgColor: EntryStatic.colorSet.block.darken.HARDWARE,
           arrowColor: EntryStatic.colorSet.arrow.default.HARDWARE,
@@ -3363,39 +3562,38 @@ Entry.jikko_esp.getBlocks = function () {
         NUM: 0,
       },
       func: function (sprite, script) {
-        return script.getField('NUM');
+        return script.getField("NUM");
       },
     },
     jikko_esp_touch: {
       color: EntryStatic.colorSet.block.default.HARDWARE,
       outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
-      fontColor: '#fff',
-      skeleton: 'basic_boolean_field',
+      fontColor: "#fff",
+      skeleton: "basic_boolean_field",
       statements: [],
       params: [
         {
-          type: 'Block',
-          accept: 'string',
-          defaultType: 'number',
+          type: "Block",
+          accept: "string",
+          defaultType: "number",
         },
       ],
       events: {},
       def: {
         params: [
           {
-            type: 'jikko_list_touch',
-            params: ['2'],
+            type: "jikko_list_touch",
+            params: ["2"],
           },
         ],
-        type: 'jikko_esp_touch',
+        type: "jikko_esp_touch",
       },
       paramsKeyMap: {
         PORT: 0,
       },
-      isNotFor: ['jikko_esp'],
-      class: 'jikkoGet',
+      isNotFor: ["jikko_esp"],
+      class: "jikkoGet",
       func: function (sprite, script) {
-
         var port = script.getNumberValue("PORT");
         var TCH = Entry.hw.portData.TOUCH;
 
@@ -3418,7 +3616,7 @@ Entry.jikko_esp.getBlocks = function () {
 
         console.log(port);
 
-        var value = (TCH <= 30) ? TCH || 0 : 0;
+        var value = TCH <= 30 ? TCH || 0 : 0;
 
         console.log(!value);
         return !value;
@@ -3431,17 +3629,17 @@ Entry.jikko_esp.getBlocks = function () {
     jikko_get_gyro: {
       color: EntryStatic.colorSet.block.default.HARDWARE,
       outerLine: EntryStatic.colorSet.block.darken.HARDWARE,
-      skeleton: 'basic_string_field',
-      fontColor: '#fff',
+      skeleton: "basic_string_field",
+      fontColor: "#fff",
       params: [
         {
-          type: 'Dropdown',
+          type: "Dropdown",
           options: [
-            ['X', '1'],
-            ['Y', '2'],
-            ['Z', '3'],
+            ["X", "1"],
+            ["Y", "2"],
+            ["Z", "3"],
           ],
-          value: '1',
+          value: "1",
           fontSize: 11,
           bgColor: EntryStatic.colorSet.block.darken.HARDWARE,
           arrowColor: EntryStatic.colorSet.arrow.default.HARDWARE,
@@ -3449,13 +3647,13 @@ Entry.jikko_esp.getBlocks = function () {
       ],
       def: {
         params: [null],
-        type: 'jikko_get_gyro',
+        type: "jikko_get_gyro",
       },
       paramsKeyMap: {
         GYRO_TYPE: 0,
       },
-      isNotFor: ['jikko_esp'],
-      class: 'jikkoGet',
+      isNotFor: ["jikko_esp"],
+      class: "jikkoGet",
       func: function (sprite, script) {
         var type = script.getNumberValue("GYRO_TYPE");
 
@@ -3471,18 +3669,19 @@ Entry.jikko_esp.getBlocks = function () {
         console.log(type);
         if (type == 1) {
           Entry.hw.sendQueue["GET"][Entry.jikko_esp.sensorTypes.GYRO_X] = {
+            port: 1,
             time: new Date().getTime(),
           };
           return Entry.hw.portData.GYRO_X || 0;
-        }
-        else if (type == 2) {
+        } else if (type == 2) {
           Entry.hw.sendQueue["GET"][Entry.jikko_esp.sensorTypes.GYRO_Y] = {
+            port: 1,
             time: new Date().getTime(),
           };
           return Entry.hw.portData.GYRO_Y || 0;
-        }
-        else if (type == 3) {
+        } else if (type == 3) {
           Entry.hw.sendQueue["GET"][Entry.jikko_esp.sensorTypes.GYRO_Z] = {
+            port: 1,
             time: new Date().getTime(),
           };
           return Entry.hw.portData.GYRO_Z || 0;
