@@ -418,8 +418,8 @@ Module.prototype.handleLocalData = function (data) {
       }
       case self.sensorTypes.TOUCH: {
         self.sensorData.TOUCH = value;
-        console.log("touch value:");
-        console.log(value);
+        // console.log('touch value:');
+        // console.log(value);
         break;
       }
       case self.sensorTypes.DHTTEMP: {
@@ -433,7 +433,7 @@ Module.prototype.handleLocalData = function (data) {
       case self.sensorTypes.ULTRASONIC: {
         self.sensorData.ULTRASONIC[port] = value;
         // console.log(value);
-        //      console.log(self.sensorData.ULTRASONIC[port]);
+        // console.log(self.sensorData.ULTRASONIC[port]);
       }
       case self.sensorTypes.GYRO_X: {
         self.sensorData.GYRO_X = value;
@@ -584,6 +584,7 @@ Module.prototype.makeSensorReadBuffer = function (device, port, data) {
       port,
       10,
     ]);
+    console.log(buffer);
   } else if (device == this.sensorTypes.GYRO_Y) {
     buffer = new Buffer([
       255,
@@ -974,6 +975,7 @@ case this.sensorTypes.DCMOTOR: {
           text,
           dummy,
         ]);
+        //   console.log(buffer);
       } else if (oled_cmd == 1) {
         //clear
         cmd.writeInt16LE(1);
@@ -1013,6 +1015,19 @@ case this.sensorTypes.DCMOTOR: {
           port,
         ]);
         buffer = Buffer.concat([buffer, cmd, size, color, dummy]);
+      } else if (oled_cmd == 3) {
+        cmd.writeInt16LE(3);
+
+        buffer = new Buffer([
+          255,
+          85,
+          6,
+          sensorIdx,
+          this.actionTypes.MODUEL,
+          device,
+          port,
+        ]);
+        buffer = Buffer.concat([buffer, cmd, dummy]);
       }
       break;
     }
